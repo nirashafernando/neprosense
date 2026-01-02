@@ -135,24 +135,50 @@ export const getPredictionResult = async (req, res) => {
 // @access  Private
 export const getMyPredictions = async (req, res) => {
     try {
-        const predictions = await PredictionResult.find({ user: req.user._id })
+        // Get both single and batch predictions
+        const singlePredictions = await PredictionResult.find({ user: req.user._id })
             .populate('predictionRequest')
             .sort({ createdAt: -1 });
 
+        const batchPredictions = await BatchPredictionRequest.find({ user: req.user._id })
+            .populate('recipientId')
+            .sort({ createdAt: -1 });
+
+        // Transform batch predictions to match display format
+        const transformedBatchPredictions = [];
+        for (const batch of batchPredictions) {
+            if (batch.predictions && batch.predictions.length > 0) {
+                for (const pred of batch.predictions) {
+                    transformedBatchPredictions.push({
+                        _id: `${batch._id}_${pred.donorId}`,
+                        donorId: pred.donorId,
+                        recipientId: batch.recipientId?.recipientId || 'N/A',
+                        probability: pred.probability,
+                        riskCategory: pred.riskCategory,
+                        rank: pred.rank,
+                        createdAt: batch.createdAt,
+                        batchId: batch._id
+                    });
+                }
+            }
+        }
+
         res.status(200).json({
             success: true,
-            count: predictions.length,
-            data: predictions
+            count: singlePredictions.length + transformedBatchPredictions.length,
+            data: transformedBatchPredictions, // Return batch predictions for now
+            singlePredictions: singlePredictions
         });
+    });
 
-    } catch (error) {
-        console.error('Get my predictions error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
-    }
+} catch (error) {
+    console.error('Get my predictions error:', error);
+    res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+    });
+}
 };
 
 // @desc    Get all predictions (Research Viewer only)
