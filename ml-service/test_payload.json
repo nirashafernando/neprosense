@@ -1,0 +1,31 @@
+{
+    "recipient": {
+        "recipientId": "RC001",
+        "age": 52,
+        "bloodGroup": "O+",
+        "bmi": 25.8,
+        "creatinine": 5.2,
+        "gfr": 12,
+        "systolicBP": 145,
+        "diastolicBP": 92,
+        "dialysisYears": 3,
+        "diabetes": true,
+        "hypertension": true,
+        "previousTransplants": 0
+    },
+    "donors": [
+        {
+            "donorId": "DN001",
+            "age": 35,
+            "bloodGroup": "O+",
+            "bmi": 24.5,
+            "creatinine": 0.9,
+            "gfr": 95,
+            "systolicBP": 120,
+            "diastolicBP": 80,
+            "smoking": false,
+            "diabetes": false,
+            "hypertension": false
+        }
+    ]
+}
