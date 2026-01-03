@@ -8,18 +8,26 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },
-  "keywords": ["healthcare", "ckd", "kidney", "transplant", "ai", "ml"],
+  "keywords": [
+    "healthcare",
+    "ckd",
+    "kidney",
+    "transplant",
+    "ai",
+    "ml"
+  ],
   "author": "NephroSense Research Team",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^8.0.3",
-    "jsonwebtoken": "^9.0.2",
+    "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "axios": "^1.6.2",
-    "express-validator": "^7.0.1"
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3",
+    "pdfkit": "^0.17.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
