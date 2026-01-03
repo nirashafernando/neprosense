@@ -2,30 +2,29 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FileText,
-  Download,
-  Eye,
   Calendar,
-  User,
-  Heart,
   Filter,
   Search,
-  TrendingUp,
-  AlertCircle,
+  Download,
+  Eye,
   CheckCircle,
-  Clock,
-  ArrowRight
+  AlertCircle,
+  Heart,
+  User
 } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/axios";
+import MatchDetailsModal from "./MatchDetailsModal";
 
 const Reports = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [error, setError] = useState(null);
+  const [selectedPredictionId, setSelectedPredictionId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [downloading, setDownloading] = useState(null); // Track which report is downloading
 
   useEffect(() => {
     fetchReports();
@@ -68,25 +67,62 @@ const Reports = () => {
     return <AlertCircle className="w-4 h-4" />;
   };
 
+  const handleViewDetails = (reportId) => {
+    setSelectedPredictionId(reportId);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedPredictionId(null);
+  };
+
+  const handleDownloadReport = async (reportId) => {
+    setDownloading(reportId);
+    try {
+      const response = await api.get(`/ predictions / batch / ${reportId}/pdf`, {
+        responseType: 'blob'
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Donor_Matching_Report_${reportId.slice(-8)}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading PDF:', err);
+      alert('Failed to download PDF report. Please try again.');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   const filteredReports = reports.filter(report => {
-    const matchesSearch =
-      report.recipientId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.donorId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report._id?.toLowerCase().includes(searchQuery.toLowerCase());
+    const searchLower = searchQuery.toLowerCase();
+
+    // Handle recipientId as object or string
+    const recipientMatch = report.recipientId?.recipientId?.toLowerCase().includes(searchLower) ||
+      report.recipientId?.name?.toLowerCase().includes(searchLower) ||
+      (typeof report.recipientId === 'string' && report.recipientId.toLowerCase().includes(searchLower));
+
+    // Handle donorIds as array
+    const donorMatch = report.donorIds?.some(donor =>
+      donor?.donorId?.toLowerCase().includes(searchLower) ||
+      donor?.name?.toLowerCase().includes(searchLower)
+    ) || false;
+
+    // Handle report ID
+    const reportIdMatch = report._id?.toLowerCase().includes(searchLower);
+
+    const matchesSearch = recipientMatch || donorMatch || reportIdMatch;
 
     if (filterStatus === "all") return matchesSearch;
     return matchesSearch && report.status === filterStatus;
   });
-
-  const handleGeneratePDF = (reportId) => {
-    // Placeholder for PDF generation
-    console.log("Generating PDF for report:", reportId);
-    alert("PDF generation feature will be implemented soon!");
-  };
-
-  const handleViewDetails = (reportId) => {
-    navigate(`/app/detailedMatchInformation?predictionId=${reportId}`);
-  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -223,14 +259,8 @@ const Reports = () => {
                     <h3 className="text-lg font-bold text-gray-900">
                       Report #{report._id?.slice(-8).toUpperCase() || index + 1}
                     </h3>
-                    {report.riskCategory && (
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${getRiskCategoryColor(report.riskCategory.category)}`}>
-                        {getRiskIcon(report.riskCategory.category)}
-                        {report.riskCategory.category}
-                      </span>
-                    )}
                     {report.status && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                         {report.status}
                       </span>
                     )}
@@ -240,13 +270,13 @@ const Reports = () => {
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-gray-500" />
                       <span className="text-sm text-gray-600">
-                        <strong>Recipient:</strong> {report.recipientId?.slice(-6) || "N/A"}
+                        <strong>Recipient:</strong> {report.recipientId?.recipientId || report.recipientId?.name || "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Heart className="w-4 h-4 text-gray-500" />
                       <span className="text-sm text-gray-600">
-                        <strong>Donor:</strong> {report.donorId?.slice(-6) || "N/A"}
+                        <strong>Donors Evaluated:</strong> {report.totalEvaluated || report.donorIds?.length || "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -257,17 +287,20 @@ const Reports = () => {
                     </div>
                   </div>
 
-                  {report.probability !== undefined && (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Match Probability</span>
-                        <span className="text-sm font-bold text-medical-600">{(report.probability * 100).toFixed(1)}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-medical-600 h-2 rounded-full transition-all"
-                          style={{ width: `${report.probability * 100}%` }}
-                        ></div>
+                  {/* Show top donor info */}
+                  {report.topDonors && report.topDonors.length > 0 && (
+                    <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <p className="text-sm font-semibold text-green-800 mb-2">Top Match</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">
+                          Donor: {report.topDonors[0].donorId}
+                        </span>
+                        <span className={`px - 2 py - 1 rounded text - xs font - semibold ${report.topDonors[0].riskCategory?.category === 'Low Risk' ? 'bg-green-100 text-green-700' :
+                          report.topDonors[0].riskCategory?.category === 'Medium Risk' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          } `}>
+                          {report.topDonors[0].riskCategory?.category || 'N/A'}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -282,11 +315,21 @@ const Reports = () => {
                     View Details
                   </button>
                   <button
-                    onClick={() => handleGeneratePDF(report._id)}
-                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap"
+                    onClick={() => handleDownloadReport(report._id)}
+                    disabled={downloading === report._id}
+                    className="border-2 border-medical-600 text-medical-600 hover:bg-medical-50 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap"
                   >
-                    <Download className="w-4 h-4" />
-                    Download PDF
+                    {downloading === report._id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-medical-600"></div>
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        Download PDF
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -294,6 +337,13 @@ const Reports = () => {
           ))
         )}
       </div>
+
+      {/* Match Details Modal */}
+      <MatchDetailsModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        predictionId={selectedPredictionId}
+      />
     </div>
   );
 };
