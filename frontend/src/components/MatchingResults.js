@@ -16,25 +16,26 @@ const MatchingResults = ({ onViewDetails }) => {
         const response = await api.get('/predictions/my-predictions');
 
         if (response.data.success) {
-          // Transform batch prediction data to flat list of individual donor-recipient matches
-          const transformedData = [];
-
-          response.data.data.forEach(batchPred => {
+          // Transform batch predictions to show ONE ROW per prediction session
+          const transformedData = response.data.data.map(batchPred => {
             // Get recipient info
             const recipientId = batchPred.recipientId?.recipientId || batchPred.recipientId?.name || 'N/A';
 
-            // Process each prediction in the predictions array
-            if (batchPred.predictions && Array.isArray(batchPred.predictions)) {
-              batchPred.predictions.forEach(pred => {
-                transformedData.push({
-                  donorId: pred.donorId || 'N/A',
-                  recipientId: recipientId,
-                  compatibilityScore: Math.round((1 - (pred.probability || 0)) * 100), // Invert since probability is rejection risk
-                  riskProbability: pred.riskCategory?.category || 'Unknown',
-                  predictionId: `${batchPred._id}_${pred.donorId}`
-                });
-              });
-            }
+            // Get best match info from topDonors
+            const topDonor = batchPred.topDonors && batchPred.topDonors.length > 0
+              ? batchPred.topDonors[0]
+              : null;
+
+            return {
+              donorId: topDonor ? `Best: ${topDonor.donorId}` : `${batchPred.totalEvaluated || batchPred.donorIds?.length || 0} Donors`,
+              recipientId: recipientId,
+              compatibilityScore: topDonor
+                ? Math.round((1 - (topDonor.probability || 0)) * 100)
+                : 0,
+              riskProbability: topDonor?.riskCategory?.category || 'Unknown',
+              predictionId: batchPred._id,
+              donorsEvaluated: batchPred.totalEvaluated || batchPred.donorIds?.length || 0
+            };
           });
 
           setMatchingData(transformedData);
@@ -52,8 +53,9 @@ const MatchingResults = ({ onViewDetails }) => {
     fetchMatchingResults();
   }, []);
 
-  const handleView = (donorId, recipientId) => {
-    onViewDetails(donorId, recipientId);
+  const handleView = (predictionId) => {
+    // Navigate to batch results page
+    window.location.href = `/app/batch-results/${predictionId}`;
   };
 
   const handleSearchChange = (e) => {
@@ -154,16 +156,16 @@ const MatchingResults = ({ onViewDetails }) => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Donor ID
+                      Top Match / Donors
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Recipient ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Compatibility Score
+                      Best Compatibility
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Risk Probability
+                      Risk Category
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Action
@@ -174,7 +176,7 @@ const MatchingResults = ({ onViewDetails }) => {
                   {filteredData.length > 0 ? (
                     filteredData.map((item, index) => (
                       <tr
-                        key={item.predictionId || `${item.donorId}-${item.recipientId}-${index}`}
+                        key={item.predictionId || index}
                         className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -199,7 +201,7 @@ const MatchingResults = ({ onViewDetails }) => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <button
-                            onClick={() => handleView(item.donorId, item.recipientId)}
+                            onClick={() => handleView(item.predictionId)}
                             className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
                           >
                             <Eye className="w-4 h-4 mr-1" />
