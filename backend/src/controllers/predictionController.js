@@ -135,14 +135,16 @@ export const getPredictionResult = async (req, res) => {
 // @access  Private
 export const getMyPredictions = async (req, res) => {
     try {
-        const predictions = await PredictionResult.find({ user: req.user._id })
-            .populate('predictionRequest')
+        // Fetch batch predictions (multi-donor matching)
+        const batchPredictions = await BatchPredictionRequest.find({ user: req.user._id })
+            .populate('recipientId', 'recipientId name bloodGroup age urgencyScore')
+            .populate('donorIds', 'donorId name bloodGroup age')
             .sort({ createdAt: -1 });
 
         res.status(200).json({
             success: true,
-            count: predictions.length,
-            data: predictions
+            count: batchPredictions.length,
+            data: batchPredictions
         });
 
     } catch (error) {
