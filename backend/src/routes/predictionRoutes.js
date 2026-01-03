@@ -9,6 +9,7 @@ import {
     getBatchPrediction,
     getBatchPredictionDetails
 } from '../controllers/predictionController.js';
+import { generateMatchingReportPDF } from '../controllers/pdfController.js';
 
 const router = express.Router();
 
@@ -23,6 +24,9 @@ router.post('/predict-batch', authorize('Clinician'), predictBatch);
 
 // GET /api/predictions/batch/:id/details - Get detailed batch prediction with explanations
 router.get('/batch/:id/details', getBatchPredictionDetails);
+
+// GET /api/predictions/batch/:id/pdf - Download PDF report
+router.get('/batch/:id/pdf', generateMatchingReportPDF);
 
 // GET /api/predictions/batch/:id - Get batch prediction
 router.get('/batch/:id', getBatchPrediction);
