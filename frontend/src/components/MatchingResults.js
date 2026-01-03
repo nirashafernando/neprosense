@@ -12,18 +12,31 @@ const MatchingResults = ({ onViewDetails }) => {
     const fetchMatchingResults = async () => {
       try {
         setLoading(true);
-        // Fetch all predictions from the backend
+        // Fetch batch predictions from the backend
         const response = await api.get('/predictions/my-predictions');
 
         if (response.data.success) {
-          // Transform backend data to match component structure
-          const transformedData = response.data.data.map(pred => ({
-            donorId: pred.donorData?.donorId || 'N/A',
-            recipientId: pred.recipientData?.recipientId || 'N/A',
-            compatibilityScore: Math.round((pred.result?.probability || 0) * 100),
-            riskProbability: pred.result?.suitability || 'Unknown',
-            predictionId: pred._id
-          }));
+          // Transform batch prediction data to flat list of individual donor-recipient matches
+          const transformedData = [];
+
+          response.data.data.forEach(batchPred => {
+            // Get recipient info
+            const recipientId = batchPred.recipientId?.recipientId || batchPred.recipientId?.name || 'N/A';
+
+            // Process each prediction in the predictions array
+            if (batchPred.predictions && Array.isArray(batchPred.predictions)) {
+              batchPred.predictions.forEach(pred => {
+                transformedData.push({
+                  donorId: pred.donorId || 'N/A',
+                  recipientId: recipientId,
+                  compatibilityScore: Math.round((1 - (pred.probability || 0)) * 100), // Invert since probability is rejection risk
+                  riskProbability: pred.riskCategory?.category || 'Unknown',
+                  predictionId: `${batchPred._id}_${pred.donorId}`
+                });
+              });
+            }
+          });
+
           setMatchingData(transformedData);
         }
         setLoading(false);
