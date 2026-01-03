@@ -125,8 +125,8 @@ const Dashboard = () => {
             <button
               onClick={() => setActiveTab('overview')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
-                  ? 'border-medical-600 text-medical-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-medical-600 text-medical-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Overview
@@ -134,8 +134,8 @@ const Dashboard = () => {
             <button
               onClick={() => setActiveTab('donors')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'donors'
-                  ? 'border-medical-600 text-medical-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-medical-600 text-medical-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Donors ({donorCount})
@@ -143,8 +143,8 @@ const Dashboard = () => {
             <button
               onClick={() => setActiveTab('recipients')}
               className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'recipients'
-                  ? 'border-medical-600 text-medical-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-medical-600 text-medical-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Recipients ({recipientCount})
@@ -289,17 +289,7 @@ const Dashboard = () => {
                     </div>
                   </button>
 
-                  <button
-                    onClick={() => navigate("/app/model-transparency")}
-                    className="bg-gray-50 hover:bg-gray-100 border-2 border-gray-200 p-4 rounded-lg transition-all group"
-                  >
-                    <div className="flex flex-col items-center">
-                      <div className="bg-gray-500 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
-                        <TrendingUp className="w-6 h-6 text-white" />
-                      </div>
-                      <span className="font-medium text-gray-900">Model Info</span>
-                    </div>
-                  </button>
+                  
                 </div>
               </div>
             )}
@@ -461,8 +451,8 @@ const Dashboard = () => {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${recipient.urgencyScore >= 8 ? 'bg-red-100 text-red-700' :
-                            recipient.urgencyScore >= 5 ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-green-100 text-green-700'
+                          recipient.urgencyScore >= 5 ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
                           }`}>
                           {recipient.urgencyScore}/10
                         </span>

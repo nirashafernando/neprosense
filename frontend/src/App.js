@@ -16,7 +16,6 @@ import MatchingResults from "./components/MatchingResults";
 import DetailedMatchInformation from "./components/DetailedMatchInformation";
 import Reports from "./components/Reports";
 import AdminProfile from "./components/AdminProfile";
-import ModelTransparency from "./components/ModelTransparency";
 import "./App.css";
 
 function App() {
@@ -53,7 +52,6 @@ function App() {
               <Route path="matching-results" element={<MatchingResults />} />
               <Route path="reports" element={<Reports />} />
               <Route path="admin-profile" element={<AdminProfile />} />
-              <Route path="model-transparency" element={<ModelTransparency />} />
 
               {/* Clinician-only routes */}
               <Route
@@ -92,7 +90,6 @@ function App() {
             <Route path="/make-prediction" element={<Navigate to="/app/make-prediction" replace />} />
             <Route path="/matching-results" element={<Navigate to="/app/matching-results" replace />} />
             <Route path="/reports" element={<Navigate to="/app/reports" replace />} />
-            <Route path="/model-transparency" element={<Navigate to="/app/model-transparency" replace />} />
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />

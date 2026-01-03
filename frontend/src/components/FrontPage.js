@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation, Link, Outlet } from "react-router-dom";
+import { useLocation, Link, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Heart } from "lucide-react";
 
 const FrontPage = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
@@ -107,26 +106,6 @@ const FrontPage = () => {
           />
         </svg>
       ),
-      label: "Model Transparency",
-      path: "/app/model-transparency",
-      active: location.pathname === "/app/model-transparency",
-    },
-    {
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-          />
-        </svg>
-      ),
       label: "Admin Profile",
       path: "/app/admin-profile",
       active: location.pathname === "/app/admin-profile",
@@ -174,8 +153,8 @@ const FrontPage = () => {
                 <Link
                   to={item.path}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${item.active
-                      ? "bg-medical-600 text-white shadow-lg"
-                      : "text-medical-100 hover:bg-medical-600 hover:text-white"
+                    ? "bg-medical-600 text-white shadow-lg"
+                    : "text-medical-100 hover:bg-medical-600 hover:text-white"
                     }`}
                 >
                   {item.icon}
