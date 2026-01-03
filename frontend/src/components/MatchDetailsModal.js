@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Award, TrendingUp, Heart, Activity, Users, CheckCircle, AlertTriangle, ChevronDown } from 'lucide-react';
+import { X, Award, TrendingUp, Heart, Activity, Users, CheckCircle, AlertTriangle, ChevronDown, Eye, Download } from 'lucide-react';
 import api from '../lib/axios';
 
 const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [data, setData] = useState(null);
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
         if (isOpen && predictionId) {
@@ -27,6 +28,30 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
             console.error('Error fetching prediction details:', err);
             setError(err.response?.data?.message || 'Failed to load prediction details');
             setLoading(false);
+        }
+    };
+
+    const handleDownloadPDF = async () => {
+        setDownloading(true);
+        try {
+            const response = await api.get(`/predictions/batch/${predictionId}/pdf`, {
+                responseType: 'blob'
+            });
+
+            // Create download link
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Donor_Matching_Report_${predictionId.slice(-8)}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Error downloading PDF:', err);
+            alert('Failed to download PDF report. Please try again.');
+        } finally {
+            setDownloading(false);
         }
     };
 
@@ -97,10 +122,10 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                                     {data.topDonors[0].matchScore}% Match
                                                 </span>
                                                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${data.topDonors[0].riskCategory?.category === 'Low Risk'
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : data.topDonors[0].riskCategory?.category === 'Medium Risk'
-                                                            ? 'bg-yellow-100 text-yellow-700'
-                                                            : 'bg-red-100 text-red-700'
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : data.topDonors[0].riskCategory?.category === 'Medium Risk'
+                                                        ? 'bg-yellow-100 text-yellow-700'
+                                                        : 'bg-red-100 text-red-700'
                                                     }`}>
                                                     {data.topDonors[0].riskCategory?.category || 'Unknown Risk'}
                                                 </span>
@@ -154,8 +179,8 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                                             <th key={idx} className="px-4 py-3 text-center">
                                                                 <div className="flex flex-col items-center gap-1">
                                                                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${idx === 0 ? 'bg-gold-100 text-yellow-700' :
-                                                                            idx === 1 ? 'bg-gray-200 text-gray-700' :
-                                                                                'bg-orange-100 text-orange-700'
+                                                                        idx === 1 ? 'bg-gray-200 text-gray-700' :
+                                                                            'bg-orange-100 text-orange-700'
                                                                         }`}>
                                                                         #{idx + 1} {donor.donorId}
                                                                     </span>
@@ -163,10 +188,10 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                                                         {donor.matchScore}%
                                                                     </span>
                                                                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${donor.riskCategory?.category === 'Low Risk'
-                                                                            ? 'bg-green-100 text-green-700'
-                                                                            : donor.riskCategory?.category === 'Medium Risk'
-                                                                                ? 'bg-yellow-100 text-yellow-700'
-                                                                                : 'bg-red-100 text-red-700'
+                                                                        ? 'bg-green-100 text-green-700'
+                                                                        : donor.riskCategory?.category === 'Medium Risk'
+                                                                            ? 'bg-yellow-100 text-yellow-700'
+                                                                            : 'bg-red-100 text-red-700'
                                                                         }`}>
                                                                         {donor.riskCategory?.category || 'Unknown'}
                                                                     </span>
@@ -272,7 +297,24 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
 
                     {/* Footer */}
                     {data && (
-                        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-200">
+                        <div className="bg-gray-50 px-6 py-4 flex items-center justify-between gap-3 border-t border-gray-200">
+                            <button
+                                onClick={handleDownloadPDF}
+                                disabled={downloading}
+                                className="px-6 py-2 bg-medical-600 hover:bg-medical-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                            >
+                                {downloading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Generating PDF...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Eye className="w-4 h-4" />
+                                        Download PDF Report
+                                    </>
+                                )}
+                            </button>
                             <button
                                 onClick={onClose}
                                 className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
