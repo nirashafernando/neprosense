@@ -363,3 +363,185 @@ export const getBatchPrediction = async (req, res) => {
         });
     }
 };
+
+// @desc    Get detailed batch prediction for modal view
+// @route   GET /api/predictions/batch/:id/details
+// @access  Private
+export const getBatchPredictionDetails = async (req, res) => {
+    try {
+        const batchPrediction = await BatchPredictionRequest.findById(req.params.id)
+            .populate('recipientId')
+            .populate('donorIds')
+            .populate('user', 'name email role');
+
+        if (!batchPrediction) {
+            return res.status(404).json({
+                success: false,
+                message: 'Batch prediction not found'
+            });
+        }
+
+        // Authorization check
+        if (batchPrediction.user._id.toString() !== req.user._id.toString() && req.user.role !== 'Admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to view this prediction'
+            });
+        }
+
+        // Get top 3 donors
+        const top3Donors = batchPrediction.predictions
+            .sort((a, b) => a.probability - b.probability) // Lower probability = better match
+            .slice(0, 3)
+            .map((pred, index) => {
+                const donor = batchPrediction.donorIds.find(d => d.donorId === pred.donorId);
+
+                return {
+                    rank: index + 1,
+                    donorId: pred.donorId,
+                    donor: donor || null,
+                    matchScore: Math.round((1 - pred.probability) * 100),
+                    probability: pred.probability,
+                    riskCategory: pred.riskCategory,
+                    shapExplanation: pred.shapExplanation || [],
+                    parameters: {
+                        bloodGroup: donor?.bloodGroup || 'N/A',
+                        age: donor?.age || 0,
+                        bmi: donor?.bmi || 0,
+                        gfr: donor?.gfr || 0,
+                        hlaMatchScore: pred.hlaMatchScore || 0,
+                        diabetes: donor?.diabetes || false,
+                        hypertension: donor?.hypertension || false,
+                        smoking: donor?.smoking || false
+                    }
+                };
+            });
+
+        // Generate human-readable explanation for top donor
+        const topDonor = top3Donors[0];
+        const recipient = batchPrediction.recipientId;
+        const reasons = generateMatchExplanation(topDonor, recipient);
+
+        // Generate comparison highlights
+        const comparisonHighlights = {};
+        top3Donors.forEach(donor => {
+            const highlights = [];
+
+            if (donor.rank === 1) {
+                if (donor.parameters.bloodGroup === recipient.bloodGroup) {
+                    highlights.push("Perfect blood match");
+                }
+                if (donor.parameters.age < 40) {
+                    highlights.push("Young donor");
+                }
+                if (donor.parameters.gfr >= 90) {
+                    highlights.push("Excellent kidney function");
+                }
+                if (!donor.parameters.diabetes && !donor.parameters.hypertension) {
+                    highlights.push("No comorbidities");
+                }
+            } else {
+                // Highlight specific strengths for other donors
+                if (donor.parameters.hlaMatchScore > topDonor.parameters.hlaMatchScore) {
+                    highlights.push("Better HLA match");
+                }
+                if (donor.parameters.bmi >= 18.5 && donor.parameters.bmi <= 25) {
+                    highlights.push("Ideal BMI");
+                }
+            }
+
+            comparisonHighlights[donor.donorId] = highlights;
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                batchPredictionId: batchPrediction._id,
+                recipient: {
+                    recipientId: recipient.recipientId,
+                    name: recipient.name,
+                    age: recipient.age,
+                    bloodGroup: recipient.bloodGroup,
+                    urgencyScore: recipient.urgencyScore,
+                    dialysisYears: recipient.dialysisYears || 0
+                },
+                topDonors: top3Donors,
+                explanation: {
+                    topDonorId: topDonor.donorId,
+                    reasons: reasons,
+                    comparisonHighlights: comparisonHighlights
+                },
+                totalEvaluated: batchPrediction.totalEvaluated
+            }
+        });
+
+    } catch (error) {
+        console.error('Get batch prediction details error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve prediction details',
+            error: error.message
+        });
+    }
+};
+
+// Helper function to generate human-readable explanations
+function generateMatchExplanation(topDonor, recipient) {
+    const reasons = [];
+    const donor = topDonor.donor;
+    const params = topDonor.parameters;
+
+    // Blood group compatibility
+    if (params.bloodGroup === recipient.bloodGroup) {
+        reasons.push(`Perfect blood type match (${params.bloodGroup} → ${recipient.bloodGroup})`);
+    } else if (params.bloodGroup === 'O-' || params.bloodGroup === 'O+') {
+        reasons.push(`Universal donor compatibility (${params.bloodGroup} → ${recipient.bloodGroup})`);
+    } else {
+        reasons.push(`Blood type compatible (${params.bloodGroup} → ${recipient.bloodGroup})`);
+    }
+
+    // Age compatibility
+    const ageDiff = Math.abs(params.age - recipient.age);
+    if (ageDiff < 15) {
+        reasons.push(`Excellent age compatibility (${ageDiff} year difference, optimal range)`);
+    } else if (ageDiff < 25) {
+        reasons.push(`Good age compatibility (${ageDiff} year difference, acceptable range)`);
+    } else {
+        reasons.push(`Age difference of ${ageDiff} years within acceptable limits`);
+    }
+
+    // HLA matching
+    if (params.hlaMatchScore >= 5) {
+        reasons.push(`Strong HLA tissue compatibility (${params.hlaMatchScore}/6 antigens matched)`);
+    } else if (params.hlaMatchScore >= 3) {
+        reasons.push(`Adequate HLA tissue compatibility (${params.hlaMatchScore}/6 antigens matched)`);
+    }
+
+    // Kidney function
+    if (params.gfr >= 90) {
+        reasons.push(`Excellent donor kidney function (eGFR: ${params.gfr} ml/min/1.73m²)`);
+    } else if (params.gfr >= 60) {
+        reasons.push(`Good donor kidney function (eGFR: ${params.gfr} ml/min/1.73m²)`);
+    }
+
+    // Health profile
+    if (!params.diabetes && !params.hypertension && !params.smoking) {
+        reasons.push("Clean donor health profile (no diabetes, hypertension, or smoking history)");
+    } else {
+        const conditions = [];
+        if (params.diabetes) conditions.push("diabetes");
+        if (params.hypertension) conditions.push("hypertension");
+        if (params.smoking) conditions.push("smoking");
+        reasons.push(`Donor has ${conditions.join(', ')} - managed risk factors`);
+    }
+
+    // Overall risk
+    if (topDonor.riskCategory?.category === 'Low Risk') {
+        reasons.push("Low rejection risk prediction based on comprehensive analysis");
+    } else if (topDonor.riskCategory?.category === 'Medium Risk') {
+        reasons.push("Medium rejection risk - careful post-transplant monitoring recommended");
+    }
+
+    return reasons;
+}
+
