@@ -68,6 +68,11 @@ const Reports = () => {
     return <AlertCircle className="w-4 h-4" />;
   };
 
+  const handleDownloadReport = (reportId) => {
+    // TODO: Implement PDF download functionality
+    alert("PDF download feature coming soon!");
+  };
+
   const filteredReports = reports.filter(report => {
     const matchesSearch =
       report.recipientId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -223,14 +228,8 @@ const Reports = () => {
                     <h3 className="text-lg font-bold text-gray-900">
                       Report #{report._id?.slice(-8).toUpperCase() || index + 1}
                     </h3>
-                    {report.riskCategory && (
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${getRiskCategoryColor(report.riskCategory.category)}`}>
-                        {getRiskIcon(report.riskCategory.category)}
-                        {report.riskCategory.category}
-                      </span>
-                    )}
                     {report.status && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                         {report.status}
                       </span>
                     )}
@@ -240,13 +239,13 @@ const Reports = () => {
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-gray-500" />
                       <span className="text-sm text-gray-600">
-                        <strong>Recipient:</strong> {report.recipientId?.slice(-6) || "N/A"}
+                        <strong>Recipient:</strong> {report.recipientId?.recipientId || report.recipientId?.name || "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Heart className="w-4 h-4 text-gray-500" />
                       <span className="text-sm text-gray-600">
-                        <strong>Donor:</strong> {report.donorId?.slice(-6) || "N/A"}
+                        <strong>Donors Evaluated:</strong> {report.totalEvaluated || report.donorIds?.length || "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -257,17 +256,20 @@ const Reports = () => {
                     </div>
                   </div>
 
-                  {report.probability !== undefined && (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Match Probability</span>
-                        <span className="text-sm font-bold text-medical-600">{(report.probability * 100).toFixed(1)}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-medical-600 h-2 rounded-full transition-all"
-                          style={{ width: `${report.probability * 100}%` }}
-                        ></div>
+                  {/* Show top donor info */}
+                  {report.topDonors && report.topDonors.length > 0 && (
+                    <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <p className="text-sm font-semibold text-green-800 mb-2">Top Match</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-700">
+                          Donor: {report.topDonors[0].donorId}
+                        </span>
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${report.topDonors[0].riskCategory?.category === 'Low Risk' ? 'bg-green-100 text-green-700' :
+                          report.topDonors[0].riskCategory?.category === 'Medium Risk' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                          {report.topDonors[0].riskCategory?.category || 'N/A'}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -275,15 +277,15 @@ const Reports = () => {
 
                 <div className="flex flex-col gap-2 ml-4">
                   <button
-                    onClick={() => handleViewDetails(report._id)}
+                    onClick={() => navigate(`/app/batch-results/${report._id}`)}
                     className="bg-medical-600 hover:bg-medical-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap"
                   >
                     <Eye className="w-4 h-4" />
                     View Details
                   </button>
                   <button
-                    onClick={() => handleGeneratePDF(report._id)}
-                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap"
+                    onClick={() => handleDownloadReport(report._id)}
+                    className="border-2 border-medical-600 text-medical-600 hover:bg-medical-50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap"
                   >
                     <Download className="w-4 h-4" />
                     Download PDF
