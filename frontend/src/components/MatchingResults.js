@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Heart, Search, Eye } from "lucide-react";
 import api from "../lib/axios";
+import MatchDetailsModal from "./MatchDetailsModal";
 
 const MatchingResults = ({ onViewDetails }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [matchingData, setMatchingData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedPredictionId, setSelectedPredictionId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchMatchingResults = async () => {
@@ -54,8 +57,13 @@ const MatchingResults = ({ onViewDetails }) => {
   }, []);
 
   const handleView = (predictionId) => {
-    // Navigate to batch results page
-    window.location.href = `/app/batch-results/${predictionId}`;
+    setSelectedPredictionId(predictionId);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedPredictionId(null);
   };
 
   const handleSearchChange = (e) => {
@@ -260,6 +268,13 @@ const MatchingResults = ({ onViewDetails }) => {
           </div>
         )}
       </div>
+
+      {/* Match Details Modal */}
+      <MatchDetailsModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        predictionId={selectedPredictionId}
+      />
     </div>
   );
 };
