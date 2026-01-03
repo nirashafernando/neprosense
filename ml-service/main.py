@@ -150,13 +150,18 @@ def load_model():
     """Load the Random Forest model and initialize SHAP explainer"""
     global model, shap_explainer
     try:
-        # For demonstration purposes, use mock predictions
-        # The actual model requires exact feature alignment which can be configured later
-        logger.info("ℹ️  Using mock predictions for demonstration")
-        logger.info("   Mock predictions provide realistic results for testing")
+        # TEMPORARY: Using mock predictions due to sklearn version mismatch
+        # Model trained on sklearn 1.4.2, environment has 1.8.0
+        # Error: 'SimpleImputer' object has no attribute '_fill_dtype'
+        # 
+        # To fix: Either downgrade sklearn OR retrain model on current version
+        # For now, mock predictions provide realistic results
+        logger.warning("⚠️  Using mock predictions (sklearn version mismatch)")
+        logger.info("   Model trained on sklearn 1.4.2, environment has 1.8.0")
+        logger.info("   Fix: pip install scikit-learn==1.4.2 OR retrain model")
         return None
         
-        # Uncomment below to use actual model when features are properly aligned
+        # Uncomment when sklearn version is resolved:
         # model_path = Path(__file__).parent / 'model' / 'donor_match_model_final_random_forest.pkl'
         # 
         # if not model_path.exists():
@@ -164,17 +169,20 @@ def load_model():
         # 
         # if not model_path.exists():
         #     logger.warning(f"Model file not found. Using mock predictions.")
+        #    logger.info("   Place model at: ml-service/model/donor_match_model_final_random_forest.pkl")
         #     return None
         # 
         # model = joblib.load(model_path)
         # logger.info("✅ Model loaded successfully")
+        # logger.info(f"   Model features: {len(model.feature_names_in_)} features")
+        # logger.info(f"   Expected features: {list(model.feature_names_in_)}")
         # 
         # if SHAP_AVAILABLE and model is not None:
         #     try:
         #         shap_explainer = shap.TreeExplainer(model)
         #         logger.info("✅ SHAP explainer initialized")
-        #     except Exception as e:
-        #         logger.warning(f"⚠️ SHAP explainer initialization failed: {e}")
+       #     except Exception as e:
+        #         logger.warning(f"⚠️  SHAP explainer initialization failed: {e}")
         #         shap_explainer = None
         # 
         # return model
@@ -260,76 +268,90 @@ def check_blood_group_compatibility(donor_bg: str, recipient_bg: str) -> bool:
     return recipient_bg in BLOOD_GROUP_COMPATIBILITY.get(donor_bg, [])
 
 def prepare_features(donor: DonorData, recipient: RecipientData) -> pd.DataFrame:
-    """Prepare features for model prediction matching the trained model's feature names"""
+    """
+    Prepare features for model prediction matching the EXACT trained model schema.
     
-    # Blood group encoding (A=0, B=1, AB=2, O=3)
+    Trained model expects these 17 features in this EXACT order:
+    ['Donor_Age', 'Donor_BMI', 'Donor_eGFR', 'Donor_HTN', 'Donor_DM', 'Donor_ABO',
+     'Recipient_Age', 'Recipient_ABO', 'Recipient_PRA', 'Dialysis_Years',
+     'HLA_Match_Score', 'ABO_Compatibility', 'Age_Gap', 'Donor_Risk_Index',
+     'Compatibility_Index', 'Risk_Probability', 'Risk_Category']
+    """
+    
+    # Blood group encoding (A=0, B=1, AB=2, O=3) - simple integer encoding
     blood_group_map = {'A+': 0, 'A-': 0, 'B+': 1, 'B-': 1, 'AB+': 2, 'AB-': 2, 'O+': 3, 'O-': 3}
     donor_abo = blood_group_map.get(donor.bloodGroup, 3)
     recipient_abo = blood_group_map.get(recipient.bloodGroup, 3)
     
-    # Check blood compatibility (1 if compatible, 0 if not)
+    # ABO Compatibility (1 if compatible, 0 if not)
     abo_compatibility = 1 if check_blood_group_compatibility(donor.bloodGroup, recipient.bloodGroup) else 0
     
-    # Calculate HLA match score (mock - in real system this would be calculated from HLA typing)
-    # For now, use a random value between 0-6 based on age similarity
-    age_diff = abs(donor.age - recipient.age)
-    hla_match_score = max(0, 6 - int(age_diff / 10))
+    # Age Gap
+    age_gap = abs(donor.age - recipient.age)
     
-    # Calculate compatibility index (composite score)
-    compatibility_index = (
-        (1 if abo_compatibility else 0) * 0.4 +
-        (hla_match_score / 6) * 0.3 +
-        (1 - min(1, age_diff / 50)) * 0.3
-    )
+    # HLA Match Score (0-6) - simplified calculation based on age similarity
+    # In production, this should calculate actual HLA antigen matches
+    hla_match_score = max(0, 6 - int(age_gap / 10))
     
-    # Calculate donor risk index
+    # Recipient PRA (Panel Reactive Antibody) 0-100%
+    # Higher PRA = more sensitized = harder to match
+    recipient_pra = min(100, recipient.previousTransplants * 30 + (20 if recipient.diabetes else 0))
+    
+    # Donor Risk Index (0-1) - composite of donor health factors
     donor_risk_index = (
         (1 if donor.smoking else 0) * 0.2 +
         (1 if donor.diabetes else 0) * 0.3 +
         (1 if donor.hypertension else 0) * 0.3 +
-        (1 - min(1, donor.gfr / 100)) * 0.2
+        max(0, (100 - donor.gfr) / 100) * 0.2
     )
     
-    # Age gap
-    age_gap = abs(donor.age - recipient.age)
+    # Compatibility Index (0-1) - composite compatibility score
+    compatibility_index = (
+        abo_compatibility * 0.4 +
+        (hla_match_score / 6) * 0.3 +
+        (1 - min(1, age_gap / 50)) * 0.3
+    )
     
-    # Recipient PRA (Panel Reactive Antibody) - mock value based on previous transplants
-    recipient_pra = min(100, recipient.previousTransplants * 30 + (1 if recipient.diabetes else 0) * 20)
+    # Risk Probability (0-1) - overall rejection risk
+    risk_probability = (
+        donor_risk_index * 0.4 +
+        (recipient.previousTransplants * 0.1) +
+        ((100 - donor.gfr) / 100) * 0.3 +
+        (recipient_pra / 100) * 0.2
+    )
+    risk_probability = min(1.0, max(0.0, risk_probability))
     
-    # Risk category (0=low, 1=medium, 2=high) - based on multiple factors
-    risk_score = donor_risk_index + (recipient.previousTransplants * 0.2) + ((100 - donor.gfr) / 100 * 0.3)
-    if risk_score < 0.3:
+    # Risk Category (0=low, 1=medium, 2=high)
+    if risk_probability < 0.3:
         risk_category = 0
-    elif risk_score < 0.6:
+    elif risk_probability < 0.6:
         risk_category = 1
     else:
         risk_category = 2
     
-    # Risk probability (continuous value 0-1)
-    risk_probability = min(1.0, max(0.0, risk_score))
-    
-    # Create feature dictionary with exact names the model expects
+    # Create feature dictionary with EXACT names and order from trained model
     features = {
-        'Donor_ABO': donor_abo,
-        'Donor_BMI': donor.bmi,
-        'Dialysis_Years': recipient.dialysisYears,
-        'ABO_Compatibility': abo_compatibility,
-        'Donor_HTN': int(donor.hypertension),
-        'Donor_DM': int(donor.diabetes),  # DM = Diabetes Mellitus
-        'Recipient_PRA': recipient_pra,
-        'Recipient_ABO': recipient_abo,
-        'Recipient_Age': recipient.age,
-        'HLA_Match_Score': hla_match_score,
-        'Donor_eGFR': donor.gfr,
-        'Age_Gap': age_gap,
         'Donor_Age': donor.age,
-        'Compatibility_Index': compatibility_index,
+        'Donor_BMI': donor.bmi,
+        'Donor_eGFR': donor.gfr,
+        'Donor_HTN': int(donor.hypertension),
+        'Donor_DM': int(donor.diabetes),
+        'Donor_ABO': donor_abo,
+        'Recipient_Age': recipient.age,
+        'Recipient_ABO': recipient_abo,
+        'Recipient_PRA': recipient_pra,
+        'Dialysis_Years': recipient.dialysisYears,
+        'HLA_Match_Score': hla_match_score,
+        'ABO_Compatibility': abo_compatibility,
+        'Age_Gap': age_gap,
         'Donor_Risk_Index': donor_risk_index,
-        'Risk_Category': risk_category,
-        'Risk_Probability': risk_probability
+        'Compatibility_Index': compatibility_index,
+        'Risk_Probability': risk_probability,
+        'Risk_Category': risk_category
     }
     
     return pd.DataFrame([features])
+
 
 
 def mock_prediction(donor: DonorData, recipient: RecipientData) -> float:
