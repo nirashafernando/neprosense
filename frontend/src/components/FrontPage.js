@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, Link, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { Heart } from "lucide-react";
+import logo from "../logo.png";
 
 const FrontPage = () => {
   const location = useLocation();
@@ -120,7 +120,7 @@ const FrontPage = () => {
     if (currentPath === "/app/reports") return "Reports";
     if (currentPath === "/app/model-transparency") return "Model Transparency";
     if (currentPath === "/app/admin-profile") return "Admin Profile";
-    return "NephroSense";
+    return "Intelligent Donor Matching";
   };
 
   const handleSearch = (e) => {
@@ -134,13 +134,15 @@ const FrontPage = () => {
       <div className="w-64 bg-medical-700 text-white flex flex-col min-h-screen">
         {/* Logo */}
         <div className="p-6 border-b border-medical-600">
-          <div className="flex items-center space-x-3">
-            <div className="bg-white p-2 rounded-lg shadow-lg">
-              <Heart className="w-8 h-8 text-medical-600" />
-            </div>
-            <div>
-              <p className="text-white text-lg font-bold">NephroSense</p>
-              <p className="text-medical-200 text-xs">Medical AI Platform</p>
+          <div className="flex flex-col items-center space-y-3">
+            {/* Logo Image */}
+            <img
+              src={logo}
+              alt="Intelligent Donor Matching Logo"
+              className="w-30 h-30 object-contain"
+            />
+            <div className="text-center">
+              <p className="text-white text-lg font-bold"> Donor Matching System</p>
             </div>
           </div>
         </div>

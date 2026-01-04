@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart } from 'lucide-react';
+import logo from '../logo.png';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -41,10 +41,13 @@ const LoginPage = () => {
             <div className="max-w-md w-full mx-4">
                 {/* Logo & Title */}
                 <div className="text-center mb-8">
-                    <button onClick={() => navigate('/home')} className="inline-flex items-center justify-center w-16 h-16 bg-medical-600 rounded-full mb-4 hover:bg-medical-700 transition-colors">
-                        <Heart className="w-8 h-8 text-white" />
+                    <button
+                        onClick={() => navigate('/home')}
+                        className="inline-flex items-center justify-center mb-4 hover:opacity-80 transition-opacity"
+                    >
+                        <img src={logo} alt="Intelligent Donor Matching" className="w-32 h-auto" />
                     </button>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">NephroSense</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Intelligent Donor Matching</h1>
                     <p className="text-gray-600">Secure Access for Healthcare Professionals</p>
                 </div>
 
@@ -115,7 +118,7 @@ const LoginPage = () => {
 
                 {/* Footer */}
                 <div className="mt-8 text-center text-sm text-gray-500">
-                    <p>© 2026 NephroSense - Medical Decision Support System</p>
+                    <p>© 2026 Intelligent Donor Matching - Medical Decision Support System</p>
                 </div>
             </div>
         </div>
