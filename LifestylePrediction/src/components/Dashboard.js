@@ -1,0 +1,290 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import logo from "./logo.png";
+import {
+  Activity,
+  TrendingUp,
+  Droplets,
+  Moon,
+  Utensils,
+  Heart,
+  ArrowRight,
+  Calendar,
+  AlertCircle,
+  CheckCircle,
+  Users
+} from "lucide-react";
+
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalEntries: 0,
+    riskAssessments: 0,
+    positiveTrends: 0,
+    activeUsers: 0,
+  });
+
+  const [recentEntries, setRecentEntries] = useState([]);
+  const [riskDistribution, setRiskDistribution] = useState({
+    low: 60,
+    moderate: 25,
+    high: 15,
+  });
+
+  useEffect(() => {
+    // Simulate data fetching
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setTimeout(() => {
+        setStats({
+          totalEntries: 1247,
+          riskAssessments: 89,
+          positiveTrends: 42,
+          activeUsers: 156,
+        });
+        
+        setRecentEntries([
+          { id: 1, user: "Patient #001", risk: "Low", date: "2024-03-15", hydration: "2.3L", activity: "45min" },
+          { id: 2, user: "Patient #002", risk: "Moderate", date: "2024-03-14", hydration: "1.8L", activity: "30min" },
+          { id: 3, user: "Patient #003", risk: "High", date: "2024-03-13", hydration: "1.2L", activity: "15min" },
+          { id: 4, user: "Patient #004", risk: "Low", date: "2024-03-12", hydration: "2.5L", activity: "60min" },
+        ]);
+        
+        setLoading(false);
+      }, 1000);
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const statsCards = [
+    {
+      title: "Total Lifestyle Entries",
+      value: stats.totalEntries,
+      icon: Calendar,
+      gradient: "from-green-500 to-cyan-600",
+      bgColor: "bg-gradient-to-br from-green-50 to-cyan-50",
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+    },
+    {
+      title: "Risk Assessments",
+      value: stats.riskAssessments,
+      icon: Activity,
+      gradient: "from-purple-500 to-pink-600",
+      bgColor: "bg-gradient-to-br from-purple-50 to-pink-50",
+      iconBg: "bg-purple-100",
+      iconColor: "text-purple-600",
+    },
+    {
+      title: "Positive Trends",
+      value: stats.positiveTrends,
+      icon: TrendingUp,
+      gradient: "from-green-500 to-emerald-600",
+      bgColor: "bg-gradient-to-br from-green-50 to-emerald-50",
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
+    },
+    {
+      title: "Active Users",
+      value: stats.activeUsers,
+      icon: Users,
+      gradient: "from-orange-500 to-red-600",
+      bgColor: "bg-gradient-to-br from-orange-50 to-red-50",
+      iconBg: "bg-orange-100",
+      iconColor: "text-orange-600",
+    },
+  ];
+
+  const getRiskColor = (risk) => {
+    switch (risk.toLowerCase()) {
+      case "low": return "bg-green-100 text-green-700";
+      case "moderate": return "bg-yellow-100 text-yellow-700";
+      case "high": return "bg-red-100 text-red-700";
+      default: return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Welcome Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Lifestyle Management</h1>
+          <p className="text-gray-600">Monitor and improve CKD patient lifestyles with AI-powered insights</p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {statsCards.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={index}
+                className={`${stat.bgColor} rounded-xl p-6 border-2 border-white shadow-lg hover:shadow-xl transition-all`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium mb-1 uppercase tracking-wide">
+                      {stat.title}
+                    </p>
+                    <p className="text-4xl font-bold text-gray-900">
+                      {loading ? (
+                        <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+                      ) : (
+                        stat.value
+                      )}
+                    </p>
+                  </div>
+                  <div className={`${stat.iconBg} p-4 rounded-xl`}>
+                    <Icon className={`w-8 h-8 ${stat.iconColor}`} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Main Action CTA */}
+        <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-xl shadow-xl p-8 mb-8 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Start Tracking Today's Lifestyle</h2>
+              <p className="text-blue-100 mb-6">
+                Log daily habits, monitor trends, and receive personalized recommendations
+              </p>
+              <button
+                onClick={() => navigate('/lifestyle-tracker')}
+                className="bg-white text-blue-700 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-all shadow-lg flex items-center gap-2 text-lg"
+              >
+                <Heart className="w-6 h-6" />
+                Go to Lifestyle Tracker
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="hidden md:block">
+              <div className="bg-white/10 backdrop-blur-sm rounded-full p-6">
+                <Activity className="w-24 h-24 text-white opacity-80"
+                 />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Risk Distribution & Recent Entries */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Risk Distribution */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Risk Distribution</h2>
+            <div className="space-y-4">
+              {Object.entries(riskDistribution).map(([risk, percentage]) => (
+                <div key={risk} className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700 capitalize">{risk} Risk</span>
+                    <span className="font-semibold text-gray-900">{percentage}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-500 ${
+                        risk === 'low' ? 'bg-green-500' :
+                        risk === 'moderate' ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Entries */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Lifestyle Entries</h2>
+            <div className="space-y-3">
+              {recentEntries.map((entry) => (
+                <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div>
+                    <p className="font-semibold text-gray-900">{entry.user}</p>
+                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <Droplets className="w-4 h-4" />
+                        {entry.hydration}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Activity className="w-4 h-4" />
+                        {entry.activity}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRiskColor(entry.risk)}`}>
+                      {entry.risk}
+                    </span>
+                    <span className="text-sm text-gray-500">{entry.date}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <button
+              onClick={() => navigate("/lifestyle-tracker")}
+              className="bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 p-4 rounded-lg transition-all group"
+            >
+              <div className="flex flex-col items-center">
+                <div className="bg-blue-500 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
+                  <Activity className="w-6 h-6 text-white" />
+                </div>
+                <span className="font-medium text-gray-900">Daily Tracker</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate("/lifestyle-insights")}
+              className="bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 p-4 rounded-lg transition-all group"
+            >
+              <div className="flex flex-col items-center">
+                <div className="bg-purple-500 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <span className="font-medium text-gray-900">View Insights</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate("/lifestyle-risk-prediction")}
+              className="bg-red-50 hover:bg-red-100 border-2 border-red-200 p-4 rounded-lg transition-all group"
+            >
+              <div className="flex flex-col items-center">
+                <div className="bg-red-500 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
+                  <AlertCircle className="w-6 h-6 text-white" />
+                </div>
+                <span className="font-medium text-gray-900">Risk Analysis</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate("/lifestyle-data-summary")}
+              className="bg-green-50 hover:bg-green-100 border-2 border-green-200 p-4 rounded-lg transition-all group"
+            >
+              <div className="flex flex-col items-center">
+                <div className="bg-green-500 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
+                  <Calendar className="w-6 h-6 text-white" />
+                </div>
+                <span className="font-medium text-gray-900">Data Summary</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
