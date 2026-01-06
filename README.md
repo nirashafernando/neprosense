@@ -1,7 +1,7 @@
 <div align="center">
   <img src="Intelligent Donor Matching/logo.png" alt="NephroSense Logo" width="200"/>
   
-  # 🏥 NephroSense
+  # NephroSense
   
   ### AI-Powered CKD Monitoring & Clinical Decision Support System
   
@@ -16,26 +16,26 @@
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-- [System Architecture](#-system-architecture)
-- [System Components](#-system-components)
-- [Technology Stack](#-technology-stack)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
-- [Configuration](#-configuration)
-- [Running the Application](#-running-the-application)
-- [API Documentation](#-api-documentation)
-- [ML Model Information](#-ml-model-information)
-- [Development](#-development)
-- [Security & Ethics](#-security--ethics)
-- [License](#-license)
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [System Components](#system-components)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
+- [Running the Application](#running-the-application)
+- [API Documentation](#api-documentation)
+- [ML Model Information](#ml-model-information)
+- [Development](#development)
+- [Security & Ethics](#security--ethics)
+- [License](#license)
 
 ---
 
-## 🎯 Overview
+## Overview
 
 **NephroSense** is a comprehensive, modular AI-driven healthcare decision support system designed to revolutionize Chronic Kidney Disease (CKD) management. The platform integrates four independent yet interconnected AI components, each addressing critical stages of kidney disease diagnosis, monitoring, and treatment.
 
@@ -47,38 +47,38 @@ Chronic Kidney Disease management requires continuous monitoring, accurate diagn
 - **Opaque** - Lack of explainability in AI predictions
 
 NephroSense addresses these gaps by providing:
-- ✅ **Automated medical image and test analysis**
-- ✅ **Personalized lifestyle guidance**
-- ✅ **Explainable donor–recipient transplant matching**
-- ✅ **Unified reporting and clinical dashboards**
+- **Automated medical image and test analysis**
+- **Personalized lifestyle guidance**
+- **Explainable donor–recipient transplant matching**
+- **Unified reporting and clinical dashboards**
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 🔬 Intelligent Analysis
+### Intelligent Analysis
 - **Multi-modal AI** - Combines image analysis, test interpretation, and predictive modeling
 - **Real-time Processing** - Instant results for clinical decision-making
 - **Explainable AI** - Transparent predictions with feature importance and reasoning
 
-### 🏥 Clinical Integration
+### Clinical Integration
 - **Professional Reporting** - Generate comprehensive PDF medical reports
 - **Dashboard Visualization** - Intuitive interfaces for healthcare professionals
 - **Batch Processing** - Handle multiple predictions efficiently
 
-### 🔐 Enterprise-Grade Security
+### Enterprise-Grade Security
 - **JWT Authentication** - Secure user authentication and authorization
 - **Data Encryption** - Protected patient information
 - **HIPAA-Compliant** - Medical data privacy standards
 
-### 📊 Comprehensive Monitoring
+### Comprehensive Monitoring
 - **Lifestyle Tracking** - Monitor patient habits and adherence
 - **Risk Prediction** - Early detection of CKD progression
 - **Donor Matching** - Intelligent transplant compatibility analysis
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ![NephroSense Architecture](Docs/architectural%20diagram.png)
 
@@ -113,9 +113,9 @@ NephroSense follows a **modular microservices architecture** with clear separati
 
 ---
 
-## 🧩 System Components
+## System Components
 
-### 1️⃣ Lifestyle Prediction & Advisory System
+### 1. Lifestyle Prediction & Advisory System
 
 **Purpose**: Predict CKD risk based on lifestyle and clinical data, generate personalized recommendations.
 
@@ -135,7 +135,7 @@ NephroSense follows a **modular microservices architecture** with clear separati
 
 ---
 
-### 2️⃣ Urine Test Strip Analysis System
+### 2. Urine Test Strip Analysis System
 
 **Purpose**: Automatically analyze urine test strip images for early CKD screening.
 
@@ -157,7 +157,7 @@ NephroSense follows a **modular microservices architecture** with clear separati
 
 ---
 
-### 3️⃣ Intelligent Donor–Recipient Matching System
+### 3. Intelligent Donor–Recipient Matching System
 
 **Purpose**: Support clinicians in kidney transplant decisions using risk prediction, donor ranking, and explainable AI.
 
@@ -184,7 +184,7 @@ NephroSense follows a **modular microservices architecture** with clear separati
 
 ---
 
-### 4️⃣ Clinical Ultrasound Image Analysis
+### 4. Clinical Ultrasound Image Analysis
 
 **Purpose**: Analyze kidney ultrasound images to predict kidney health and CKD stage.
 
@@ -208,7 +208,7 @@ NephroSense follows a **modular microservices architecture** with clear separati
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### **Frontend**
 | Technology | Purpose |
@@ -253,7 +253,7 @@ NephroSense follows a **modular microservices architecture** with clear separati
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 NeproSense/
@@ -310,7 +310,7 @@ NeproSense/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -380,7 +380,7 @@ MODEL_PATH=./model
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -407,7 +407,7 @@ MODEL_PATH=./model
 
 ---
 
-## ▶️ Running the Application
+## Running the Application
 
 ### Development Mode
 
@@ -457,7 +457,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ---
 
-## 📡 API Documentation
+## API Documentation
 
 ### Authentication Endpoints
 
@@ -634,7 +634,7 @@ Content-Type: application/json
 
 ---
 
-## 🤖 ML Model Information
+## ML Model Information
 
 ### Donor Matching Model
 
@@ -675,7 +675,7 @@ Content-Type: application/json
 
 ---
 
-## 👨‍💻 Development
+## Development
 
 ### Code Style
 
@@ -713,20 +713,20 @@ pytest
 
 ---
 
-## 🔐 Security & Ethics
+## Security & Ethics
 
 ### Data Privacy
-- ✅ Patient data anonymization
-- ✅ Secure storage of medical records
-- ✅ Encrypted data transmission (HTTPS)
-- ✅ HIPAA compliance standards
+- Patient data anonymization
+- Secure storage of medical records
+- Encrypted data transmission (HTTPS)
+- HIPAA compliance standards
 
 ### AI Ethics
-- ✅ **Advisory-only predictions** - AI assists, not replaces clinicians
-- ✅ **Explainable AI** - Transparent decision-making process
-- ✅ **Clinician validation required** - Human oversight mandatory
-- ✅ **Bias mitigation** - Regular model audits for fairness
-- ✅ **Academic and medical ethics compliance**
+- **Advisory-only predictions** - AI assists, not replaces clinicians
+- **Explainable AI** - Transparent decision-making process
+- **Clinician validation required** - Human oversight mandatory
+- **Bias mitigation** - Regular model audits for fairness
+- **Academic and medical ethics compliance**
 
 ### Security Measures
 - JWT-based authentication
@@ -738,13 +738,13 @@ pytest
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **NephroSense Research Team** - For developing this comprehensive CKD management system
 - **Medical Advisors** - For clinical guidance and validation
@@ -752,7 +752,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-## 📞 Contact & Support
+## Contact & Support
 
 For questions, issues, or collaboration opportunities:
 
@@ -764,7 +764,7 @@ For questions, issues, or collaboration opportunities:
 
 <div align="center">
   
-  **Made with ❤️ by the NephroSense Team**
+  **Made by the NephroSense Team**
   
   *Advancing kidney disease management through AI innovation*
   
