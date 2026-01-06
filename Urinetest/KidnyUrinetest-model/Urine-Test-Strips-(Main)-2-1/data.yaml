@@ -1,0 +1,22 @@
+names:
+- Bilirubin
+- Blood
+- Glucose
+- Ketone
+- Leukocytes
+- Nitrite
+- Protein
+- SpGravity
+- Urobilinogen
+- pH
+- strip
+nc: 11
+roboflow:
+  license: Private
+  project: urine-test-strips-main-2-foyeq
+  url: https://universe.roboflow.com/pramodya-priyasanka/urine-test-strips-main-2-foyeq/dataset/1
+  version: 1
+  workspace: pramodya-priyasanka
+test: ../test/images
+train: ../train/images
+val: ../valid/images
