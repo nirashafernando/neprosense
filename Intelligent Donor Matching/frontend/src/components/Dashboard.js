@@ -28,6 +28,11 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'donors', 'recipients'
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingDonor, setEditingDonor] = useState(null);
+  const [editingRecipient, setEditingRecipient] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -87,6 +92,82 @@ const Dashboard = () => {
     } catch (err) {
       alert('Failed to delete recipient: ' + (err.response?.data?.message || err.message));
     }
+  };
+
+  const handleEditDonor = (donor) => {
+    setEditingDonor(donor._id);
+    setEditFormData({
+      name: donor.name,
+      age: donor.age,
+      bloodGroup: donor.bloodGroup,
+      location: donor.location,
+      contactNumber: donor.contactNumber,
+      medicalHistory: donor.medicalHistory || '',
+      status: donor.status
+    });
+  };
+
+  const handleEditRecipient = (recipient) => {
+    setEditingRecipient(recipient._id);
+    setEditFormData({
+      name: recipient.name,
+      age: recipient.age,
+      bloodGroup: recipient.bloodGroup,
+      urgencyScore: recipient.urgencyScore,
+      medicalCondition: recipient.medicalCondition || '',
+      status: recipient.status
+    });
+  };
+
+  const handleSaveDonor = async () => {
+    try {
+      setSaving(true);
+      const response = await api.put(`/donors/${editingDonor}`, editFormData);
+
+      if (response.data.success) {
+        setDonors(donors.map(d =>
+          d._id === editingDonor ? response.data.data : d
+        ));
+        setEditingDonor(null);
+        setEditFormData({});
+        showSuccess('Donor updated successfully!');
+      }
+    } catch (err) {
+      alert('Failed to update donor: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveRecipient = async () => {
+    try {
+      setSaving(true);
+      const response = await api.put(`/recipients/${editingRecipient}`, editFormData);
+
+      if (response.data.success) {
+        setRecipients(recipients.map(r =>
+          r._id === editingRecipient ? response.data.data : r
+        ));
+        setEditingRecipient(null);
+        setEditFormData({});
+        showSuccess('Recipient updated successfully!');
+      }
+    } catch (err) {
+      alert('Failed to update recipient: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingDonor(null);
+    setEditingRecipient(null);
+    setEditFormData({});
+  };
+
+  const showSuccess = (message) => {
+    setSuccessMessage(message);
+    setTimeout(() => setSuccessMessage(''), 3000);
   };
 
   const filteredDonors = donors.filter(donor =>
@@ -289,7 +370,7 @@ const Dashboard = () => {
                     </div>
                   </button>
 
-                  
+
                 </div>
               </div>
             )}
@@ -311,6 +392,16 @@ const Dashboard = () => {
                 </button>
               )}
             </div>
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                {successMessage}
+              </div>
+            )}
 
             {/* Search */}
             <div className="mb-4">
@@ -344,41 +435,113 @@ const Dashboard = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredDonors.map((donor) => (
-                    <tr key={donor._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{donor.donorId}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{donor.name}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{donor.age}</td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-medical-100 text-medical-700">
-                          {donor.bloodGroup}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{donor.location}</td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${donor.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                          }`}>
-                          {donor.status}
-                        </span>
-                      </td>
-                      {isClinician && (
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => navigate(`/app/donor?edit=${donor._id}`)}
-                            className="text-medical-600 hover:text-medical-900 mr-3"
-                            title="Edit"
+                    editingDonor === donor._id ? (
+                      <tr key={donor._id} className="bg-blue-50">
+                        <td className="px-4 py-4 text-sm font-medium text-gray-900">{donor.donorId}</td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="text"
+                            value={editFormData.name}
+                            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-medical-500"
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="number"
+                            value={editFormData.age}
+                            onChange={(e) => setEditFormData({ ...editFormData, age: e.target.value })}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-medical-500"
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <select
+                            value={editFormData.bloodGroup}
+                            onChange={(e) => setEditFormData({ ...editFormData, bloodGroup: e.target.value })}
+                            className="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-medical-500"
                           >
-                            <Edit className="w-4 h-4" />
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="text"
+                            value={editFormData.location}
+                            onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-medical-500"
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <select
+                            value={editFormData.status}
+                            onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                            className="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-medical-500"
+                          >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="matched">Matched</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={handleSaveDonor}
+                            disabled={saving}
+                            className="bg-medical-600 hover:bg-medical-700 text-white px-3 py-1 rounded mr-2 disabled:opacity-50"
+                          >
+                            {saving ? 'Saving...' : 'Save'}
                           </button>
                           <button
-                            onClick={() => handleDeleteDonor(donor._id)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
+                            onClick={handleCancelEdit}
+                            className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-3 py-1 rounded"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            Cancel
                           </button>
                         </td>
-                      )}
-                    </tr>
+                      </tr>
+                    ) : (
+                      <tr key={donor._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{donor.donorId}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{donor.name}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{donor.age}</td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-medical-100 text-medical-700">
+                            {donor.bloodGroup}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{donor.location}</td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${donor.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                            {donor.status}
+                          </span>
+                        </td>
+                        {isClinician && (
+                          <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() => handleEditDonor(donor)}
+                              className="text-medical-600 hover:text-medical-900 mr-3"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDonor(donor._id)}
+                              className="text-red-600 hover:text-red-900"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    )
                   ))}
                 </tbody>
               </table>
@@ -407,6 +570,16 @@ const Dashboard = () => {
                 </button>
               )}
             </div>
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                {successMessage}
+              </div>
+            )}
 
             {/* Search */}
             <div className="mb-4">
@@ -440,48 +613,122 @@ const Dashboard = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredRecipients.map((recipient) => (
-                    <tr key={recipient._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{recipient.recipientId}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{recipient.name}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{recipient.age}</td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
-                          {recipient.bloodGroup}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${recipient.urgencyScore >= 8 ? 'bg-red-100 text-red-700' :
-                          recipient.urgencyScore >= 5 ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-green-100 text-green-700'
-                          }`}>
-                          {recipient.urgencyScore}/10
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${recipient.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'
-                          }`}>
-                          {recipient.status}
-                        </span>
-                      </td>
-                      {isClinician && (
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => navigate(`/app/recipient?edit=${recipient._id}`)}
-                            className="text-blue-600 hover:text-blue-900 mr-3"
-                            title="Edit"
+                    editingRecipient === recipient._id ? (
+                      <tr key={recipient._id} className="bg-blue-50">
+                        <td className="px-4 py-4 text-sm font-medium text-gray-900">{recipient.recipientId}</td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="text"
+                            value={editFormData.name}
+                            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="number"
+                            value={editFormData.age}
+                            onChange={(e) => setEditFormData({ ...editFormData, age: e.target.value })}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <select
+                            value={editFormData.bloodGroup}
+                            onChange={(e) => setEditFormData({ ...editFormData, bloodGroup: e.target.value })}
+                            className="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                           >
-                            <Edit className="w-4 h-4" />
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-4">
+                          <input
+                            type="number"
+                            min="0"
+                            max="10"
+                            value={editFormData.urgencyScore}
+                            onChange={(e) => setEditFormData({ ...editFormData, urgencyScore: e.target.value })}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <select
+                            value={editFormData.status}
+                            onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                            className="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="waiting">Waiting</option>
+                            <option value="matched">Matched</option>
+                            <option value="transplanted">Transplanted</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={handleSaveRecipient}
+                            disabled={saving}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded mr-2 disabled:opacity-50"
+                          >
+                            {saving ? 'Saving...' : 'Save'}
                           </button>
                           <button
-                            onClick={() => handleDeleteRecipient(recipient._id)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
+                            onClick={handleCancelEdit}
+                            className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-3 py-1 rounded"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            Cancel
                           </button>
                         </td>
-                      )}
-                    </tr>
+                      </tr>
+                    ) : (
+                      <tr key={recipient._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{recipient.recipientId}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{recipient.name}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{recipient.age}</td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+                            {recipient.bloodGroup}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${recipient.urgencyScore >= 8 ? 'bg-red-100 text-red-700' :
+                            recipient.urgencyScore >= 5 ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-green-100 text-green-700'
+                            }`}>
+                            {recipient.urgencyScore}/10
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${recipient.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                            {recipient.status}
+                          </span>
+                        </td>
+                        {isClinician && (
+                          <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() => handleEditRecipient(recipient)}
+                              className="text-blue-600 hover:text-blue-900 mr-3"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRecipient(recipient._id)}
+                              className="text-red-600 hover:text-red-900"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    )
                   ))}
                 </tbody>
               </table>
