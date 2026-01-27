@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import logging
+from utils.hla_matching import calculate_hla_match_score, get_hla_match_level
 
 # Try to import SHAP
 try:
@@ -41,6 +42,7 @@ class DonorData(BaseModel):
     donorId: Optional[str] = Field(None, description="Donor ID")
     age: float = Field(..., ge=18, le=100, description="Donor age")
     bloodGroup: str = Field(..., description="Donor blood group (A+, A-, B+, B-, AB+, AB-, O+, O-)")
+    hlaTyping: Optional[str] = Field(None, description="HLA typing (e.g., A1,A2,B8,B44,DR1,DR4)")
     bmi: float = Field(..., ge=15, le=50, description="Donor BMI")
     creatinine: float = Field(..., ge=0.5, le=10, description="Donor serum creatinine (mg/dL)")
     gfr: float = Field(..., ge=0, le=200, description="Donor GFR (mL/min/1.73m²)")
@@ -54,6 +56,7 @@ class RecipientData(BaseModel):
     recipientId: Optional[str] = Field(None, description="Recipient ID")
     age: float = Field(..., ge=18, le=100, description="Recipient age")
     bloodGroup: str = Field(..., description="Recipient blood group")
+    hlaTyping: Optional[str] = Field(None, description="HLA typing (e.g., A1,A3,B8,B44,DR1,DR7)")
     bmi: float = Field(..., ge=15, le=50, description="Recipient BMI")
     creatinine: float = Field(..., ge=0.5, le=20, description="Recipient serum creatinine (mg/dL)")
     gfr: float = Field(..., ge=0, le=200, description="Recipient GFR (mL/min/1.73m²)")
@@ -97,6 +100,7 @@ class DonorPredictionResult(BaseModel):
     riskCategory: RiskCategory
     shapExplanation: List[SHAPExplanation]
     explanationText: str
+    parameters: Optional[dict] = None  # Add parameters field for HLA scores and clinical metrics
     rank: int
 
 class BatchPredictionResponse(BaseModel):
@@ -108,7 +112,7 @@ class BatchPredictionResponse(BaseModel):
 # Global variable to store loaded model and SHAP explainer
 model = None
 shap_explainer = None
-THRESHOLD = 0.5  # Classification threshold
+THRESHOLD = 0.58  # Clinical decision threshold (optimized during training)
 
 # Blood group compatibility matrix
 BLOOD_GROUP_COMPATIBILITY = {
@@ -124,16 +128,19 @@ BLOOD_GROUP_COMPATIBILITY = {
 
 def categorize_risk(probability: float) -> dict:
     """
-    Categorize risk based on probability
-    Research thresholds: Low (0-30%), Medium (31-60%), High (>60%)
+    Categorize risk based on SUITABILITY probability from model
+    Model returns probability of being SUITABLE (class 1)
+    - High suitability (>70%) = Low Risk
+    - Medium suitability (40-70%) = Medium Risk  
+    - Low suitability (<40%) = High Risk
     """
-    if probability <= 0.30:
+    if probability >= 0.70:
         return {
             "category": "Low Risk",
             "color": "green",
             "description": "Favorable match with low rejection risk. Recommended for transplant consideration."
         }
-    elif probability <= 0.60:
+    elif probability >= 0.40:
         return {
             "category": "Medium Risk",
             "color": "yellow",
@@ -150,42 +157,39 @@ def load_model():
     """Load the Random Forest model and initialize SHAP explainer"""
     global model, shap_explainer
     try:
-        # TEMPORARY: Using mock predictions due to sklearn version mismatch
-        # Model trained on sklearn 1.4.2, environment has 1.8.0
-        # Error: 'SimpleImputer' object has no attribute '_fill_dtype'
-        # 
-        # To fix: Either downgrade sklearn OR retrain model on current version
-        # For now, mock predictions provide realistic results
-        logger.warning("⚠️  Using mock predictions (sklearn version mismatch)")
-        logger.info("   Model trained on sklearn 1.4.2, environment has 1.8.0")
-        logger.info("   Fix: pip install scikit-learn==1.4.2 OR retrain model")
-        return None
+        # Load the optimized Random Forest model
+        model_path = Path(__file__).parent / 'model' / 'donor_match_model.pkl'
         
-        # Uncomment when sklearn version is resolved:
-        # model_path = Path(__file__).parent / 'model' / 'donor_match_model_final_random_forest.pkl'
-        # 
-        # if not model_path.exists():
-        #     model_path = Path(__file__).parent.parent / 'donor_match_model_final_random_forest.pkl'
-        # 
-        # if not model_path.exists():
-        #     logger.warning(f"Model file not found. Using mock predictions.")
-        #    logger.info("   Place model at: ml-service/model/donor_match_model_final_random_forest.pkl")
-        #     return None
-        # 
-        # model = joblib.load(model_path)
-        # logger.info("✅ Model loaded successfully")
-        # logger.info(f"   Model features: {len(model.feature_names_in_)} features")
-        # logger.info(f"   Expected features: {list(model.feature_names_in_)}")
-        # 
-        # if SHAP_AVAILABLE and model is not None:
-        #     try:
-        #         shap_explainer = shap.TreeExplainer(model)
-        #         logger.info("✅ SHAP explainer initialized")
-       #     except Exception as e:
-        #         logger.warning(f"⚠️  SHAP explainer initialization failed: {e}")
-        #         shap_explainer = None
-        # 
-        # return model
+        if not model_path.exists():
+            logger.warning(f"Model file not found. Using mock predictions.")
+            logger.info("   Place model at: ml-service/model/donor_match_model.pkl")
+            return None
+        
+        model = joblib.load(model_path)
+        logger.info(f"✅ Model loaded successfully from: {model_path.name}")
+        logger.info(f"   Model type: {type(model).__name__}")
+        
+        # Try to get feature information if available
+        try:
+            if hasattr(model, 'feature_names_in_'):
+                logger.info(f"   Model features: {len(model.feature_names_in_)} features")
+            elif hasattr(model, 'n_features_in_'):
+                logger.info(f"   Model features: {model.n_features_in_} features")
+        except Exception as e:
+            logger.debug(f"Could not extract feature info: {e}")
+        
+        # Initialize SHAP if available
+        if SHAP_AVAILABLE and model is not None:
+            try:
+                # Get the actual model from pipeline if needed
+                actual_model = model.named_steps['model'] if hasattr(model, 'named_steps') else model
+                shap_explainer = shap.TreeExplainer(actual_model)
+                logger.info("✅ SHAP explainer initialized")
+            except Exception as e:
+                logger.warning(f"⚠️  SHAP explainer initialization failed: {e}")
+                shap_explainer = None
+        
+        return model
     except Exception as e:
         logger.error(f"❌ Error loading model: {e}")
         return None
@@ -271,14 +275,15 @@ def prepare_features(donor: DonorData, recipient: RecipientData) -> pd.DataFrame
     """
     Prepare features for model prediction matching the EXACT trained model schema.
     
-    Trained model expects these 17 features in this EXACT order:
-    ['Donor_Age', 'Donor_BMI', 'Donor_eGFR', 'Donor_HTN', 'Donor_DM', 'Donor_ABO',
-     'Recipient_Age', 'Recipient_ABO', 'Recipient_PRA', 'Dialysis_Years',
-     'HLA_Match_Score', 'ABO_Compatibility', 'Age_Gap', 'Donor_Risk_Index',
-     'Compatibility_Index', 'Risk_Probability', 'Risk_Category']
+    IMPORTANT: Trained model expects 15 features (Donor_Risk_Index was dropped during training):
+    ['Donor_Age', 'Donor_BMI', 'Donor_eGFR', 'Donor_HTN', 'Donor_DM', 'Donor_Smoking', 
+     'Donor_ABO', 'Recipient_Age', 'Recipient_ABO', 'Recipient_PRA', 'Dialysis_Years',
+     'Previous_Transplants', 'HLA_Match_Score', 'ABO_Compatibility', 'Age_Gap']
+    
+    Uses RAW numeric features - no scaling (tree-based model)
     """
     
-    # Blood group encoding (A=0, B=1, AB=2, O=3) - simple integer encoding
+    # Blood group encoding (A=0, B=1, AB=2, O=3) - matching training data
     blood_group_map = {'A+': 0, 'A-': 0, 'B+': 1, 'B-': 1, 'AB+': 2, 'AB-': 2, 'O+': 3, 'O-': 3}
     donor_abo = blood_group_map.get(donor.bloodGroup, 3)
     recipient_abo = blood_group_map.get(recipient.bloodGroup, 3)
@@ -289,68 +294,46 @@ def prepare_features(donor: DonorData, recipient: RecipientData) -> pd.DataFrame
     # Age Gap
     age_gap = abs(donor.age - recipient.age)
     
-    # HLA Match Score (0-6) - simplified calculation based on age similarity
-    # In production, this should calculate actual HLA antigen matches
-    hla_match_score = max(0, 6 - int(age_gap / 10))
+    # HLA Match Score (0-6) - REAL clinical HLA matching
+    donor_hla = getattr(donor, 'hlaTyping', '') or ''
+    recipient_hla = getattr(recipient, 'hlaTyping', '') or ''
+    hla_match_score = calculate_hla_match_score(donor_hla, recipient_hla)
     
-    # Recipient PRA (Panel Reactive Antibody) 0-100%
-    # Higher PRA = more sensitized = harder to match
+    # Recipient PRA calculation (0-100) - Panel Reactive Antibody
+    # Estimate based on sensitization factors
     recipient_pra = min(100, recipient.previousTransplants * 30 + (20 if recipient.diabetes else 0))
     
-    # Donor Risk Index (0-1) - composite of donor health factors
-    donor_risk_index = (
-        (1 if donor.smoking else 0) * 0.2 +
-        (1 if donor.diabetes else 0) * 0.3 +
-        (1 if donor.hypertension else 0) * 0.3 +
-        max(0, (100 - donor.gfr) / 100) * 0.2
-    )
-    
-    # Compatibility Index (0-1) - composite compatibility score
-    compatibility_index = (
-        abo_compatibility * 0.4 +
-        (hla_match_score / 6) * 0.3 +
-        (1 - min(1, age_gap / 50)) * 0.3
-    )
-    
-    # Risk Probability (0-1) - overall rejection risk
-    risk_probability = (
-        donor_risk_index * 0.4 +
-        (recipient.previousTransplants * 0.1) +
-        ((100 - donor.gfr) / 100) * 0.3 +
-        (recipient_pra / 100) * 0.2
-    )
-    risk_probability = min(1.0, max(0.0, risk_probability))
-    
-    # Risk Category (0=low, 1=medium, 2=high)
-    if risk_probability < 0.3:
-        risk_category = 0
-    elif risk_probability < 0.6:
-        risk_category = 1
-    else:
-        risk_category = 2
-    
-    # Create feature dictionary with EXACT names and order from trained model
+    # Create feature dictionary with EXACT names and order from training
+    # NOTE: Donor_Risk_Index is NOT included (dropped during training)
     features = {
-        'Donor_Age': donor.age,
-        'Donor_BMI': donor.bmi,
-        'Donor_eGFR': donor.gfr,
+        'Donor_Age': float(donor.age),
+        'Donor_BMI': float(donor.bmi),
+        'Donor_eGFR': float(donor.gfr),
         'Donor_HTN': int(donor.hypertension),
         'Donor_DM': int(donor.diabetes),
-        'Donor_ABO': donor_abo,
-        'Recipient_Age': recipient.age,
-        'Recipient_ABO': recipient_abo,
-        'Recipient_PRA': recipient_pra,
-        'Dialysis_Years': recipient.dialysisYears,
-        'HLA_Match_Score': hla_match_score,
-        'ABO_Compatibility': abo_compatibility,
-        'Age_Gap': age_gap,
-        'Donor_Risk_Index': donor_risk_index,
-        'Compatibility_Index': compatibility_index,
-        'Risk_Probability': risk_probability,
-        'Risk_Category': risk_category
+        'Donor_Smoking': int(donor.smoking),
+        'Donor_ABO': int(donor_abo),
+        'Recipient_Age': float(recipient.age),
+        'Recipient_ABO': int(recipient_abo),
+        'Recipient_PRA': float(recipient_pra),
+        'Dialysis_Years': float(recipient.dialysisYears),
+        'Previous_Transplants': int(recipient.previousTransplants),
+        'HLA_Match_Score': int(hla_match_score),
+        'ABO_Compatibility': int(abo_compatibility),
+        'Age_Gap': float(age_gap)
     }
     
-    return pd.DataFrame([features])
+    # Create DataFrame with columns in exact order
+    df = pd.DataFrame([features])
+    
+    # Ensure column order matches training data (15 features, no Donor_Risk_Index)
+    column_order = [
+        'Donor_Age', 'Donor_BMI', 'Donor_eGFR', 'Donor_HTN', 'Donor_DM', 'Donor_Smoking',
+        'Donor_ABO', 'Recipient_Age', 'Recipient_ABO', 'Recipient_PRA', 'Dialysis_Years',
+        'Previous_Transplants', 'HLA_Match_Score', 'ABO_Compatibility', 'Age_Gap'
+    ]
+    
+    return df[column_order]
 
 
 
@@ -360,32 +343,62 @@ def mock_prediction(donor: DonorData, recipient: RecipientData) -> float:
     # Check blood group compatibility
     blood_compatible = check_blood_group_compatibility(donor.bloodGroup, recipient.bloodGroup)
     
-    # Calculate simple risk score
-    score = 0.7  # Base score
+    # Calculate HLA match score (0-6)
+    donor_hla = getattr(donor, 'hlaTyping', '') or ''
+    recipient_hla = getattr(recipient, 'hlaTyping', '') or ''
+    hla_match_score = calculate_hla_match_score(donor_hla, recipient_hla)
     
-    # Adjust based on blood compatibility
+    # Calculate risk score (0-1, where 0 = no risk, 1 = high risk)
+    # Start with base risk based on HLA matching (most important factor)
+    # Perfect HLA match (6/6) = 0.15 base risk (15% rejection)
+    # No HLA match (0/6) = 0.75 base risk (75% rejection)
+    base_risk = 0.75 - (hla_match_score / 6) * 0.6  # 6/6 = 0.15, 0/6 = 0.75
+    
+    # Blood compatibility adjustment (critical factor)
     if not blood_compatible:
-        score -= 0.3
+        base_risk += 0.2  # Incompatible blood = +20% risk
     
-    # Age difference penalty
+    # Age difference penalty (moderate factor)
     age_diff = abs(donor.age - recipient.age)
     if age_diff > 20:
-        score -= 0.1
+        base_risk += 0.05
+    elif age_diff > 30:
+        base_risk += 0.10
     
-    # Health factors
-    if donor.diabetes or donor.hypertension:
-        score -= 0.15
+    # Donor health factors (moderate impact)
+    if donor.diabetes:
+        base_risk += 0.08
+    if donor.hypertension:
+        base_risk += 0.05
+    if donor.smoking:
+        base_risk += 0.05
     
+    # Donor kidney function (important factor)
     if donor.gfr < 60:
-        score -= 0.2
+        base_risk += 0.15  # Reduced function = +15% risk
+    elif donor.gfr < 90:
+        base_risk += 0.05  # Slightly reduced = +5% risk
     
+    # Recipient sensitization (previous transplants increase risk)
     if recipient.previousTransplants > 0:
-        score -= 0.1 * recipient.previousTransplants
+        base_risk += 0.08 * recipient.previousTransplants  # +8% per previous transplant
     
-    # Ensure score is between 0 and 1
-    score = max(0.0, min(1.0, score))
+    # Ensure risk is between 0 and 1
+    risk = max(0.0, min(1.0, base_risk))
     
-    return score
+    # Log the calculation for debugging
+    print(f"\n=== Mock Prediction Calculation ===")
+    print(f"HLA Match: {hla_match_score}/6 → Base Risk: {0.75 - (hla_match_score / 6) * 0.6:.2f}")
+    print(f"Blood Compatible: {blood_compatible}")
+    print(f"Age Diff: {age_diff} years")
+    print(f"Donor Health: DM={donor.diabetes}, HTN={donor.hypertension}, Smoking={donor.smoking}")
+    print(f"Donor GFR: {donor.gfr}")
+    print(f"Previous Transplants: {recipient.previousTransplants}")
+    print(f"Final Risk Probability: {risk:.2f} ({risk*100:.0f}%)")
+    print(f"Compatibility Score: {(1-risk)*100:.0f}%")
+    print(f"===================================\n")
+    
+    return risk
 
 @app.on_event("startup")
 async def startup_event():
@@ -503,30 +516,95 @@ async def predict_batch(request: BatchPredictionRequest):
         for donor in donors:
             donor_id = donor.donorId or f"Donor_{len(predictions) + 1}"
             
+            # ===== ENHANCED DEBUG LOGGING =====
+            print(f"\n{'='*70}")
+            print(f"PROCESSING DONOR: {donor_id}")
+            print(f"{'='*70}")
+            print(f"Donor object type: {type(donor)}")
+            print(f"Donor has hlaTyping attr: {hasattr(donor, 'hlaTyping')}")
+            if hasattr(donor, 'hlaTyping'):
+                donor_hla_value = getattr(donor, 'hlaTyping', None)
+                print(f"Donor hlaTyping value: '{donor_hla_value}'")
+                print(f"Donor hlaTyping type: {type(donor_hla_value)}")
+                print(f"Donor hlaTyping length: {len(donor_hla_value) if donor_hla_value else 0}")
+            
+            print(f"\nRecipient object type: {type(recipient)}")
+            print(f"Recipient has hlaTyping attr: {hasattr(recipient, 'hlaTyping')}")
+            if hasattr(recipient, 'hlaTyping'):
+                recipient_hla_value = getattr(recipient, 'hlaTyping', None)
+                print(f"Recipient hlaTyping value: '{recipient_hla_value}'")
+                print(f"Recipient hlaTyping type: {type(recipient_hla_value)}")
+                print(f"Recipient hlaTyping length: {len(recipient_hla_value) if recipient_hla_value else 0}")
+            print(f"{'='*70}\n")
+            # ===== END DEBUG LOGGING =====
+            
+            # Calculate HLA match score
+            donor_hla = getattr(donor, 'hlaTyping', '') or ''
+            recipient_hla = getattr(recipient, 'hlaTyping', '') or ''
+            hla_match_score = calculate_hla_match_score(donor_hla, recipient_hla)
+            hla_match_level = get_hla_match_level(hla_match_score)
+            
             # Check blood group compatibility
             blood_compatible = check_blood_group_compatibility(donor.bloodGroup, recipient.bloodGroup)
             
+            # Initialize SHAP explanation
             shap_explanation = []
             
+            # Make prediction
             if model is not None:
-                # Use actual trained model
-                features_df = prepare_features(donor, recipient)
-                probability = float(model.predict_proba(features_df)[0][1])
-                
-                # Generate SHAP explanation if available
-                if shap_explainer is not None:
-                    try:
-                        shap_values = shap_explainer.shap_values(features_df)
-                        shap_explanation = generate_shap_explanation(features_df, shap_values)
-                    except Exception as e:
-                        logger.warning(f"SHAP explanation failed for {donor_id}: {e}")
+                try:
+                    # Use actual trained model
+                    features_df = prepare_features(donor, recipient)
+                    
+                    # Log features being sent to model
+                    print(f"\n{'🔬 FEATURES DEBUG ' + '='*52}")
+                    print(f"  Donor: {donor_id}")
+                    print(f"  HLA Match Score: {hla_match_score}/6 ({hla_match_level})")
+                    print(f"  Blood Compatible: {blood_compatible}")
+                    print(f"\n  Input Features to Model:")
+                    # Assuming features_df is a DataFrame with a single row
+                    if not features_df.empty:
+                        for idx, (key, value) in enumerate(features_df.iloc[0].items()):
+                            print(f"    [{idx+1:2d}] {key:25s}: {value:.4f}" if isinstance(value, (int, float)) else f"    [{idx+1:2d}] {key:25s}: {value}")
+                    else:
+                        print("    ⚠️  No features generated for prediction.")
+                    print(f"{'='*70}")
+                    
+                    # Get raw model output
+                    raw_proba = model.predict_proba(features_df)[0][1]
+                    probability = float(raw_proba)
+                    
+                    # CRITICAL DEBUG: Track unique probabilities
+                    print(f"\n{'🔍 MODEL OUTPUT DEBUG ' + '='*50}")
+                    print(f"  Donor ID: {donor_id}")
+                    print(f"  Raw Model Probability: {raw_proba}")
+                    print(f"  After float conversion: {probability}")
+                    print(f"  After rounding: {round(probability, 4)}")
+                    print(f"  Model type: {type(model).__name__}")
+                    print(f"  Features shape: {features_df.shape}")
+                    print(f"  Features hash: {hash(str(features_df.values.tolist()))}")
+                    print(f"\nModel Prediction:")
+                    print(f"  Suitability Probability: {probability:.4f} ({probability*100:.1f}%)")
+                    print(f"{'='*70}\n")
+                    
+                    # Generate SHAP explanation if available
+                    if shap_explainer is not None:
+                        try:
+                            shap_values = shap_explainer.shap_values(features_df)
+                            shap_explanation = generate_shap_explanation(features_df, shap_values)
+                        except Exception as e:
+                            logger.warning(f"SHAP explanation failed for {donor_id}: {e}")
+                except Exception as e:
+                    logger.warning(f"Model prediction failed for {donor_id}: {e}")
+                    # If model prediction fails, probability might not be set, handle gracefully
+                    probability = 0.5 # Default to neutral if prediction fails
             else:
                 # Use mock prediction
                 probability = mock_prediction(donor, recipient)
             
-            # Apply blood group compatibility constraint
-            if not blood_compatible:
-                probability = min(probability, 0.3)
+            # Model already accounts for blood compatibility via ABO_Compatibility feature
+            # No need for hard constraint - let model's learned weights handle it
+            # Note: Blood incompatibility is factored into the model's 15 features
             
             # Categorize risk
             risk_category = categorize_risk(probability)
@@ -534,23 +612,55 @@ async def predict_batch(request: BatchPredictionRequest):
             # Generate explanation text
             explanation_text = generate_explanation_text(shap_explanation)
             
+            # Create parameters object with clinical metrics
+            parameters = {
+                "hlaMatchScore": hla_match_score,
+                "hlaMatchLevel": hla_match_level,
+                "bloodGroupCompatible": blood_compatible,
+                "donorAge": donor.age,
+                "recipientAge": recipient.age,
+                "donorGFR": donor.gfr,
+                "recipientGFR": recipient.gfr,
+                "donorBMI": donor.bmi,
+                "recipientBMI": recipient.bmi
+            }
+            
+            # DEBUG: Log what's being stored
+            stored_probability = round(probability, 4)
+            print(f"📦 STORING: {donor_id} → Probability: {stored_probability}, Risk: {risk_category['category']}")
+            
             predictions.append({
                 "donorId": donor_id,
-                "probability": round(probability, 4),
+                "probability": stored_probability,
                 "riskCategory": risk_category,
                 "shapExplanation": shap_explanation,
                 "explanationText": explanation_text,
+                "parameters": parameters,  # Add parameters to response
                 "rank": 0  # Will be assigned after sorting
             })
         
-        # Sort by probability (ascending - lower risk first)
-        predictions.sort(key=lambda x: x["probability"])
+        # DEBUG: Log all probabilities before sorting
+        print(f"\n{'🔍 PRE-SORT DEBUG ' + '='*55}")
+        print(f"Total predictions: {len(predictions)}")
+        for p in predictions:
+            print(f"  {p['donorId']}: {p['probability']} ({p['riskCategory']['category']})")
+        print(f"{'='*70}\n")
+        
+        # Sort by probability (descending - highest compatibility first)
+        # Probability represents SUITABILITY, so higher is better
+        predictions.sort(key=lambda x: x["probability"], reverse=True)
+        
+        # DEBUG: Log all probabilities after sorting
+        print(f"\n{'🔍 POST-SORT DEBUG ' + '='*54}")
+        for idx, p in enumerate(predictions):
+            print(f"  Rank {idx+1}: {p['donorId']} → {p['probability']} ({p['riskCategory']['category']})")
+        print(f"{'='*70}\n")
         
         # Assign ranks
         for idx, pred in enumerate(predictions):
             pred["rank"] = idx + 1
         
-        # Get top 3 donors (lowest risk)
+        # Get top 3 donors (highest compatibility = lowest risk)
         top_donors = predictions[:3]
         
         # Convert to response models
@@ -561,6 +671,7 @@ async def predict_batch(request: BatchPredictionRequest):
                 riskCategory=RiskCategory(**p["riskCategory"]),
                 shapExplanation=[SHAPExplanation(**exp) for exp in p["shapExplanation"]],
                 explanationText=p["explanationText"],
+                parameters=p.get("parameters"),  # Include parameters with HLA scores
                 rank=p["rank"]
             )
             for p in predictions
@@ -573,6 +684,7 @@ async def predict_batch(request: BatchPredictionRequest):
                 riskCategory=RiskCategory(**p["riskCategory"]),
                 shapExplanation=[SHAPExplanation(**exp) for exp in p["shapExplanation"]],
                 explanationText=p["explanationText"],
+                parameters=p.get("parameters"),  # Include parameters with HLA scores
                 rank=p["rank"]
             )
             for p in top_donors

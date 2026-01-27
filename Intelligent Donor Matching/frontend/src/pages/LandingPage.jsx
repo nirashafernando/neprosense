@@ -11,7 +11,6 @@ import {
     Users,
     Shield,
     CheckCircle,
-    AlertTriangle,
     ArrowRight,
     Github
 } from "lucide-react";

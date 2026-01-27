@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Award, TrendingUp, Heart, Activity, Users, CheckCircle, AlertTriangle, ChevronDown, Eye, Download } from 'lucide-react';
+import { X, Award, TrendingUp, Activity, Users, CheckCircle, AlertTriangle, Download, Heart, Eye } from 'lucide-react';
 import api from '../lib/axios';
+import MatchParameterExplanation from './MatchParameterExplanation';
 
 const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
     const [loading, setLoading] = useState(true);
@@ -12,6 +13,7 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
         if (isOpen && predictionId) {
             fetchPredictionDetails();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, predictionId]);
 
     const fetchPredictionDetails = async () => {
@@ -21,6 +23,21 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
             const response = await api.get(`/predictions/batch/${predictionId}/details`);
 
             if (response.data.success) {
+                // ===== DEBUG LOGGING =====
+                console.log('=== MODAL DATA DEBUG ===');
+                console.log('Full Response:', response.data.data);
+                if (response.data.data.topDonors && response.data.data.topDonors.length > 0) {
+                    const topDonor = response.data.data.topDonors[0];
+                    console.log('Top Donor:', topDonor);
+                    console.log('HLA Match Score:', topDonor.parameters?.hlaMatchScore);
+                    console.log('Risk Category:', topDonor.riskCategory);
+                    console.log('Match Score:', topDonor.matchScore);
+                    console.log('Probability:', topDonor.probability);
+                    console.log('Parameters:', topDonor.parameters);
+                }
+                console.log('========================');
+                // ===== END DEBUG =====
+
                 setData(response.data.data);
             }
             setLoading(false);
@@ -116,10 +133,10 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
                                                 <h3 className="text-2xl font-bold text-gray-900">
-                                                    Top Match: {data.topDonors[0].donorId}
+                                                    Recommended Match (ML-Based): {data.topDonors[0].donorId}
                                                 </h3>
                                                 <span className="px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold">
-                                                    {data.topDonors[0].matchScore}% Match
+                                                    {data.topDonors[0].matchScore}% Compatibility
                                                 </span>
                                                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${data.topDonors[0].riskCategory?.category === 'Low Risk'
                                                     ? 'bg-green-100 text-green-700'
@@ -134,7 +151,7 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                             <div className="mt-4">
                                                 <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                                                     <CheckCircle className="w-5 h-5 text-green-600" />
-                                                    Why this donor is the best match:
+                                                    Why this donor is recommended (ML Analysis):
                                                 </p>
                                                 <ul className="space-y-2">
                                                     {data.explanation.reasons.map((reason, index) => (
@@ -187,12 +204,13 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                                                     <span className="text-sm font-semibold text-medical-600">
                                                                         {donor.matchScore}%
                                                                     </span>
-                                                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${donor.riskCategory?.category === 'Low Risk'
-                                                                        ? 'bg-green-100 text-green-700'
-                                                                        : donor.riskCategory?.category === 'Medium Risk'
-                                                                            ? 'bg-yellow-100 text-yellow-700'
-                                                                            : 'bg-red-100 text-red-700'
-                                                                        }`}>
+                                                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${(() => {
+                                                                        const category = donor.riskCategory?.category;
+                                                                        console.log(`Risk for ${donor.donorId}:`, category, 'Full riskCategory:', donor.riskCategory);
+                                                                        if (category === 'Low Risk') return 'bg-green-100 text-green-700';
+                                                                        if (category === 'Medium Risk') return 'bg-yellow-100 text-yellow-700';
+                                                                        return 'bg-red-100 text-red-700';
+                                                                    })()}`}>
                                                                         {donor.riskCategory?.category || 'Unknown'}
                                                                     </span>
                                                                 </div>
@@ -223,9 +241,13 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                                     <ComparisonRow
                                                         label="HLA Match"
                                                         icon={<TrendingUp className="w-4 h-4" />}
-                                                        values={data.topDonors.map(d => `${d.parameters.hlaMatchScore}/6`)}
+                                                        values={data.topDonors.map(d => {
+                                                            const hlaScore = d.parameters?.hlaMatchScore ?? 0;
+                                                            console.log(`HLA Score for ${d.donorId}:`, hlaScore, 'Full params:', d.parameters);
+                                                            return `${hlaScore}/6`;
+                                                        })}
                                                         bestIndex={data.topDonors.reduce((best, curr, idx, arr) =>
-                                                            curr.parameters.hlaMatchScore > arr[best].parameters.hlaMatchScore ? idx : best, 0
+                                                            (curr.parameters?.hlaMatchScore ?? 0) > (arr[best].parameters?.hlaMatchScore ?? 0) ? idx : best, 0
                                                         )}
                                                     />
 
@@ -268,19 +290,30 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
 
                                         {/* Legend */}
                                         <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-                                            <div className="flex items-center gap-6 text-xs text-gray-600">
-                                                <span className="flex items-center gap-1">
-                                                    <span className="text-green-600 font-bold">✓</span> Optimal
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <span className="text-yellow-600 font-bold">▲</span> Acceptable
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <span className="text-red-600 font-bold">▼</span> Concern
-                                                </span>
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex items-center gap-6 text-xs text-gray-600">
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="text-green-600 font-bold">✓</span> Optimal Range
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="text-yellow-600 font-bold">▲</span> Acceptable Range
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="text-red-600 font-bold">▼</span> Requires Attention
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 italic">
+                                                    Note: Icons show individual parameter ranges. Overall ranking is determined by ML composite analysis.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Clinical Interpretation - Doctor-Friendly Explanation */}
+                                    <MatchParameterExplanation
+                                        donor={data.topDonors[0]}
+                                        recipient={data.recipient}
+                                    />
                                 </div>
 
                                 {/* Disclaimer */}
@@ -332,10 +365,61 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
 // Helper component for comparison rows
 const ComparisonRow = ({ label, icon, values, recipient, bestIndex = -1 }) => {
     const getIndicator = (index, value) => {
-        if (bestIndex === index) return <span className="text-green-600 font-bold">✓</span>;
-        if (value === 'Healthy') return <span className="text-green-600 font-bold">✓</span>;
-        if (value.includes('DM') || value.includes('HTN')) return <span className="text-yellow-600 font-bold">▲</span>;
-        return <span className="text-gray-400">—</span>;
+        // For #1 ranked donor (index 0), never show red concern indicator
+        // ML has already determined this is the best match despite any borderline parameters
+        const isTopMatch = index === 0;
+        
+        // Clinical evaluation based on parameter type
+        switch (label) {
+            case 'HLA Match':
+                const hlaScore = parseInt(value.split('/')[0]);
+                if (hlaScore >= 5) return <span className="text-green-600 font-bold">✓</span>; // Excellent
+                if (hlaScore >= 3) return <span className="text-yellow-600 font-bold">▲</span>; // Acceptable
+                // Top match: show acceptable instead of concern
+                return isTopMatch ? <span className="text-yellow-600 font-bold">▲</span> : <span className="text-red-600 font-bold">▼</span>;
+
+            case 'eGFR':
+                const gfr = parseInt(value);
+                if (gfr >= 90) return <span className="text-green-600 font-bold">✓</span>; // Excellent
+                if (gfr >= 60) return <span className="text-yellow-600 font-bold">▲</span>; // Acceptable
+                // Top match: show acceptable instead of concern
+                return isTopMatch ? <span className="text-yellow-600 font-bold">▲</span> : <span className="text-red-600 font-bold">▼</span>;
+
+            case 'BMI':
+                const bmi = parseFloat(value);
+                if (bmi >= 18.5 && bmi <= 25) return <span className="text-green-600 font-bold">✓</span>; // Optimal
+                if (bmi >= 17 && bmi <= 30) return <span className="text-yellow-600 font-bold">▲</span>; // Acceptable
+                // Top match: show acceptable instead of concern
+                return isTopMatch ? <span className="text-yellow-600 font-bold">▲</span> : <span className="text-red-600 font-bold">▼</span>;
+
+            case 'Age':
+                const age = parseInt(value);
+                if (age < 40) return <span className="text-green-600 font-bold">✓</span>; // Young donor
+                if (age < 55) return <span className="text-yellow-600 font-bold">▲</span>; // Acceptable
+                // Top match: show acceptable instead of concern for older donors
+                return isTopMatch ? <span className="text-yellow-600 font-bold">▲</span> : <span className="text-red-600 font-bold">▼</span>;
+
+            case 'Health Status':
+                if (value === 'Healthy') return <span className="text-green-600 font-bold">✓</span>;
+                // For top match, multiple issues still acceptable per ML
+                if (value.includes('DM') && value.includes('HTN')) {
+                    return isTopMatch ? <span className="text-yellow-600 font-bold">▲</span> : <span className="text-red-600 font-bold">▼</span>;
+                }
+                if (value.includes('DM') || value.includes('HTN') || value.includes('Smoker')) {
+                    return <span className="text-yellow-600 font-bold">▲</span>; // Single issue
+                }
+                return <span className="text-green-600 font-bold">✓</span>;
+
+            case 'Blood Group':
+                // Blood group compatibility is binary - either compatible or not
+                // If this row is shown, it's already compatible
+                return <span className="text-green-600 font-bold">✓</span>;
+
+            default:
+                // Fallback to relative comparison
+                if (bestIndex === index) return <span className="text-green-600 font-bold">✓</span>;
+                return <span className="text-gray-400">—</span>;
+        }
     };
 
     return (

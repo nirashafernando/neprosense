@@ -47,6 +47,22 @@ const batchPredictionRequestSchema = new mongoose.Schema({
             description: String
         }],
         explanationText: String,
+        parameters: {
+            hlaMatchScore: {
+                type: Number,
+                default: 0
+            },
+            hlaMatchLevel: String,
+            bloodGroupCompatible: Boolean,
+            donorAge: Number,
+            recipientAge: Number,
+            donorGFR: Number,
+            recipientGFR: Number,
+            donorBMI: Number,
+            recipientBMI: Number,
+            donorRiskIndex: Number,
+            compatibilityIndex: Number
+        },
         rank: {
             type: Number,
             required: true
@@ -63,6 +79,19 @@ const batchPredictionRequestSchema = new mongoose.Schema({
             category: String,
             color: String,
             description: String
+        },
+        parameters: {
+            hlaMatchScore: Number,
+            hlaMatchLevel: String,
+            bloodGroupCompatible: Boolean,
+            donorAge: Number,
+            recipientAge: Number,
+            donorGFR: Number,
+            recipientGFR: Number,
+            donorBMI: Number,
+            recipientBMI: Number,
+            donorRiskIndex: Number,
+            compatibilityIndex: Number
         },
         rank: Number
     }],
