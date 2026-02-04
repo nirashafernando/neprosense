@@ -212,34 +212,3 @@ def get_hla_match_score(donor_hla: str, recipient_hla: str) -> int:
     """
     matcher = HLAMatcher()
     return matcher.compute_hla_score(donor_hla, recipient_hla)
-
-
-# ML Service API functions (for compatibility)
-def calculate_hla_match_score(donor_hla: str, recipient_hla: str) -> int:
-    """
-    Calculate HLA match score (alias for get_hla_match_score).
-    Used by ML service API.
-    
-    Args:
-        donor_hla: Donor HLA typing string
-        recipient_hla: Recipient HLA typing string
-        
-    Returns:
-        HLA match score (0-6)
-    """
-    return get_hla_match_score(donor_hla, recipient_hla)
-
-
-def get_hla_match_level(hla_score: int) -> str:
-    """
-    Get qualitative HLA match level from score.
-    Used by ML service API.
-    
-    Args:
-        hla_score: HLA match score (0-6)
-        
-    Returns:
-        Qualitative match level (Poor/Fair/Good/Excellent)
-    """
-    matcher = HLAMatcher()
-    return matcher.get_match_quality(hla_score)
