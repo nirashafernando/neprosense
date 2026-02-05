@@ -169,118 +169,169 @@ const Reports = () => {
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Prediction Reports</h1>
-            <p className="text-gray-600">View and manage all donor matching predictions</p>
-          </div>
-          <div className="bg-medical-100 p-4 rounded-xl">
-            <FileText className="w-8 h-8 text-medical-600" />
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-medical-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Total Reports</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{reports.length}</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50">
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+        {/* Professional Medical Header */}
+        <div className="mb-6">
+          <div className="bg-white rounded-xl shadow-md border border-slate-200 p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-medical-500 to-medical-700 p-3 rounded-xl shadow-lg">
+                  <FileText className="w-7 h-7 text-white" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+                    Clinical Reports
+                  </h1>
+                  <p className="text-slate-600 mt-0.5 text-sm">
+                    Donor-recipient compatibility analysis
+                  </p>
+                </div>
+              </div>
+              <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-medical-50 to-emerald-50 px-4 py-2 rounded-lg border border-medical-200">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-xs font-semibold text-slate-700">System Active</span>
+              </div>
             </div>
-            <FileText className="w-10 h-10 text-medical-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Low Risk</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.filter(r => 
-                  r.predictions?.some(p => p.riskCategory?.category?.toLowerCase().includes('low'))
-                ).length}
-              </p>
+        {/* Enhanced Stats Cards with Medical Theme */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 p-4 border border-slate-200 hover:border-medical-300 cursor-pointer overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-medical-100 to-transparent rounded-full -mr-10 -mt-10 opacity-50"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-gradient-to-br from-medical-100 to-medical-50 rounded-lg">
+                  <FileText className="w-5 h-5 text-medical-600" strokeWidth={2.5} />
+                </div>
+                <p className="text-2xl font-bold text-slate-900">{reports.length}</p>
+              </div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Total Reports</p>
+              <p className="text-xs text-slate-500">All time generated</p>
             </div>
-            <CheckCircle className="w-10 h-10 text-green-500" />
           </div>
-        </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Medium Risk</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.filter(r => 
-                  r.predictions?.some(p => p.riskCategory?.category?.toLowerCase().includes('medium'))
-                ).length}
-              </p>
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 p-4 border border-slate-200 hover:border-emerald-300 cursor-pointer overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-emerald-100 to-transparent rounded-full -mr-10 -mt-10 opacity-50"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" strokeWidth={2.5} />
+                </div>
+                <p className="text-2xl font-bold text-slate-900">
+                  {reports.filter(r => 
+                    r.predictions?.some(p => p.riskCategory?.category?.toLowerCase().includes('low'))
+                  ).length}
+                </p>
+              </div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Low Risk</p>
+              <p className="text-xs text-emerald-600 font-medium">Optimal matches</p>
             </div>
-            <AlertCircle className="w-10 h-10 text-yellow-500" />
           </div>
-        </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">High Risk</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.filter(r => 
-                  r.predictions?.some(p => p.riskCategory?.category?.toLowerCase().includes('high'))
-                ).length}
-              </p>
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 p-4 border border-slate-200 hover:border-amber-300 cursor-pointer overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-amber-100 to-transparent rounded-full -mr-10 -mt-10 opacity-50"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-gradient-to-br from-amber-100 to-amber-50 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-amber-600" strokeWidth={2.5} />
+                </div>
+                <p className="text-2xl font-bold text-slate-900">
+                  {reports.filter(r => 
+                    r.predictions?.some(p => p.riskCategory?.category?.toLowerCase().includes('medium'))
+                  ).length}
+                </p>
+              </div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Medium Risk</p>
+              <p className="text-xs text-amber-600 font-medium">Requires monitoring</p>
             </div>
-            <AlertCircle className="w-10 h-10 text-red-500" />
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search by Recipient ID, Donor ID, or Report ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-medical-500"
-            />
           </div>
 
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-medical-500 appearance-none"
-            >
-              <option value="all">All Status</option>
-              <option value="completed">Completed</option>
-              <option value="pending">Pending</option>
-              <option value="failed">Failed</option>
-            </select>
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 p-4 border border-slate-200 hover:border-rose-300 cursor-pointer overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-rose-100 to-transparent rounded-full -mr-10 -mt-10 opacity-50"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-gradient-to-br from-rose-100 to-rose-50 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-rose-600" strokeWidth={2.5} />
+                </div>
+                <p className="text-2xl font-bold text-slate-900">
+                  {reports.filter(r => 
+                    r.predictions?.some(p => p.riskCategory?.category?.toLowerCase().includes('high'))
+                  ).length}
+                </p>
+              </div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">High Risk</p>
+              <p className="text-xs text-rose-600 font-medium">Needs attention</p>
+            </div>
           </div>
         </div>
-      </div>
+
+        {/* Enhanced Search and Filter Section */}
+        <div className="bg-white rounded-xl shadow-md border border-slate-200 p-4 mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="relative group">
+              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 group-focus-within:text-medical-600 transition-colors">
+                <Search className="w-5 h-5" strokeWidth={2.5} />
+              </div>
+              <input
+                type="text"
+                placeholder="Search by Recipient ID, Donor ID, or Report ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-medical-500 transition-all text-slate-700 placeholder-slate-400"
+              />
+            </div>
+
+            <div className="relative group">
+              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 group-focus-within:text-medical-600 transition-colors pointer-events-none">
+                <Filter className="w-5 h-5" strokeWidth={2.5} />
+              </div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-medical-500 appearance-none transition-all text-slate-700 cursor-pointer bg-white"
+              >
+                <option value="all">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+              </select>
+              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          {error}
+        <div className="bg-gradient-to-r from-rose-50 to-red-50 border-2 border-rose-300 rounded-lg px-4 py-3 mb-5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-rose-100 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-rose-600" />
+            </div>
+            <p className="text-rose-700 font-medium text-sm">{error}</p>
+          </div>
         </div>
       )}
 
-      {/* Reports List */}
+      {/* Enhanced Reports List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading reports...</p>
+          <div className="bg-white rounded-xl shadow-md border border-slate-200 p-12 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-medical-600"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-medical-600" />
+                </div>
+              </div>
+              <p className="text-slate-600 font-medium">Loading clinical reports...</p>
+              <p className="text-slate-400 text-xs">Please wait while we retrieve your data</p>
+            </div>
           </div>
         ) : filteredReports.length === 0 ? (
           <EmptyState 
@@ -289,128 +340,222 @@ const Reports = () => {
           />
         ) : (
           <>
-            {paginatedReports.map((report, index) => (
-            <div
-              key={report._id || index}
-              className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-6 border-l-4 border-medical-500"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h3 className="text-lg font-bold text-gray-900">
-                      Report #{report._id?.slice(-8).toUpperCase() || index + 1}
-                    </h3>
-                    {report.status && (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                        {report.status}
-                      </span>
-                    )}
+            {paginatedReports.map((report, index) => {
+              const { date, time } = formatDateTime(report.createdAt || Date.now());
+              const topDonor = report.topDonors?.[0];
+              const riskCategory = topDonor?.riskCategory?.category || 'N/A';
+              const isLowRisk = riskCategory.toLowerCase().includes('low');
+              const isMediumRisk = riskCategory.toLowerCase().includes('medium');
+              const isHighRisk = riskCategory.toLowerCase().includes('high');
+
+              return (
+                <div
+                  key={report._id || index}
+                  className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border-2 border-slate-200 hover:border-medical-300 overflow-hidden"
+                >
+                  {/* Report Header with Color Accent */}
+                  <div className={`h-1.5 ${isLowRisk ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : isMediumRisk ? 'bg-gradient-to-r from-amber-400 to-amber-600' : isHighRisk ? 'bg-gradient-to-r from-rose-400 to-rose-600' : 'bg-gradient-to-r from-medical-400 to-medical-600'}`}></div>
+                  
+                  <div className="p-5 md:p-6">
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                      {/* Main Content */}
+                      <div className="flex-1 space-y-4">
+                        {/* Report Title & Status */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-gradient-to-br from-medical-100 to-medical-50 rounded-lg">
+                              <FileText className="w-4 h-4 text-medical-600" strokeWidth={2.5} />
+                            </div>
+                            <h3 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight">
+                              #{report._id?.slice(-8).toUpperCase() || `REP${index + 1}`}
+                            </h3>
+                          </div>
+                          {report.status && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-100 to-emerald-50 text-emerald-700 border border-emerald-200">
+                              {report.status}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Clinical Information Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg border border-slate-200">
+                          <div className="flex items-start gap-2">
+                            <div className="p-1.5 bg-white rounded-lg shadow-sm mt-0.5">
+                              <User className="w-4 h-4 text-medical-600" strokeWidth={2.5} />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Recipient</p>
+                              <p className="text-sm font-bold text-slate-900">
+                                {report.recipientId?.recipientId || report.recipientId?.name || "N/A"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-2">
+                            <div className="p-1.5 bg-white rounded-lg shadow-sm mt-0.5">
+                              <Heart className="w-4 h-4 text-rose-600" strokeWidth={2.5} />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Donors Evaluated</p>
+                              <p className="text-sm font-bold text-slate-900">
+                                {report.totalEvaluated || report.donorIds?.length || "N/A"} candidates
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-2">
+                            <div className="p-1.5 bg-white rounded-lg shadow-sm mt-0.5">
+                              <Calendar className="w-4 h-4 text-blue-600" strokeWidth={2.5} />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Analysis Date</p>
+                              <p className="text-sm font-bold text-slate-900">{date}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-2">
+                            <div className="p-1.5 bg-white rounded-lg shadow-sm mt-0.5">
+                              <Clock className="w-4 h-4 text-indigo-600" strokeWidth={2.5} />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Analysis Time</p>
+                              <p className="text-sm font-bold text-slate-900">{time}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Recommended Match - Enhanced Design */}
+                        {topDonor && (
+                          <div className={`p-4 rounded-lg border-2 ${
+                            isLowRisk ? 'bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-300' :
+                            isMediumRisk ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-300' :
+                            isHighRisk ? 'bg-gradient-to-br from-rose-50 to-red-50 border-rose-300' :
+                            'bg-gradient-to-br from-slate-50 to-gray-50 border-slate-300'
+                          }`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className={`p-1.5 rounded-lg ${
+                                  isLowRisk ? 'bg-emerald-200' :
+                                  isMediumRisk ? 'bg-amber-200' :
+                                  isHighRisk ? 'bg-rose-200' :
+                                  'bg-slate-200'
+                                }`}>
+                                  <CheckCircle className={`w-4 h-4 ${
+                                    isLowRisk ? 'text-emerald-700' :
+                                    isMediumRisk ? 'text-amber-700' :
+                                    isHighRisk ? 'text-rose-700' :
+                                    'text-slate-700'
+                                  }`} strokeWidth={2.5} />
+                                </div>
+                                <p className={`text-xs font-bold uppercase tracking-wider ${
+                                  isLowRisk ? 'text-emerald-800' :
+                                  isMediumRisk ? 'text-amber-800' :
+                                  isHighRisk ? 'text-rose-800' :
+                                  'text-slate-800'
+                                }`}>
+                                  AI-Recommended Match
+                                </p>
+                              </div>
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                                isLowRisk ? 'bg-emerald-600 text-white' :
+                                isMediumRisk ? 'bg-amber-600 text-white' :
+                                isHighRisk ? 'bg-rose-600 text-white' :
+                                'bg-slate-600 text-white'
+                              }`}>
+                                {riskCategory}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className={`text-xs font-semibold ${
+                                  isLowRisk ? 'text-emerald-700' :
+                                  isMediumRisk ? 'text-amber-700' :
+                                  isHighRisk ? 'text-rose-700' :
+                                  'text-slate-700'
+                                }`}>Optimal Donor Match</p>
+                                <p className="text-base font-bold text-slate-900">Donor: {topDonor.donorId}</p>
+                              </div>
+                              {topDonor.compatibilityScore && (
+                                <div className="text-right">
+                                  <p className={`text-xs font-semibold ${
+                                    isLowRisk ? 'text-emerald-700' :
+                                    isMediumRisk ? 'text-amber-700' :
+                                    isHighRisk ? 'text-rose-700' :
+                                    'text-slate-700'
+                                  }`}>Compatibility</p>
+                                  <p className="text-base font-bold text-slate-900">
+                                    {(topDonor.compatibilityScore * 100).toFixed(1)}%
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons - Redesigned */}
+                      <div className="flex flex-row lg:flex-col gap-3 w-full lg:w-auto lg:min-w-[200px]">
+                        <button
+                          onClick={() => handleViewDetails(report._id)}
+                          className="flex-1 lg:flex-none bg-gradient-to-r from-medical-600 to-medical-700 hover:from-medical-700 hover:to-medical-800 text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                        >
+                          <Eye className="w-4 h-4" strokeWidth={2.5} />
+                          <span>View Details</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleDownloadReport(report._id)}
+                          disabled={downloading === report._id}
+                          className="flex-1 lg:flex-none border-2 border-medical-600 text-medical-600 hover:bg-medical-50 disabled:bg-slate-100 disabled:border-slate-300 disabled:text-slate-400 px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 disabled:transform-none disabled:shadow-md"
+                        >
+                          {downloading === report._id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-medical-600 border-t-transparent"></div>
+                              <span>Downloading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-4 h-4" strokeWidth={2.5} />
+                              <span>Download PDF</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteReport(report._id, `Report #${report._id?.slice(-8).toUpperCase()}`)}
+                          disabled={deleting === report._id}
+                          className="flex-1 lg:flex-none border-2 border-rose-600 text-rose-600 hover:bg-rose-50 disabled:bg-slate-100 disabled:border-slate-300 disabled:text-slate-400 px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 disabled:transform-none disabled:shadow-md"
+                        >
+                          {deleting === report._id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-rose-600 border-t-transparent"></div>
+                              <span>Deleting...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="w-4 h-4" strokeWidth={2.5} />
+                              <span>Delete</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        <strong>Recipient:</strong> {report.recipientId?.recipientId || report.recipientId?.name || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Heart className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        <strong>Donors Evaluated:</strong> {report.totalEvaluated || report.donorIds?.length || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">
-                          <strong>Date:</strong> {formatDateTime(report.createdAt || Date.now()).date}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">
-                          <strong>Time:</strong> {formatDateTime(report.createdAt || Date.now()).time}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Show top donor info */}
-                  {report.topDonors && report.topDonors.length > 0 && (
-                    <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                      <p className="text-sm font-semibold text-green-800 mb-2">Recommended Match (ML-Based)</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700">
-                          Donor: {report.topDonors[0].donorId}
-                        </span>
-                        <span className={`px - 2 py - 1 rounded text - xs font - semibold ${report.topDonors[0].riskCategory?.category === 'Low Risk' ? 'bg-green-100 text-green-700' :
-                          report.topDonors[0].riskCategory?.category === 'Medium Risk' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          } `}>
-                          {report.topDonors[0].riskCategory?.category || 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
-
-                <div className="flex flex-col gap-2 ml-4">
-                  <button
-                    onClick={() => handleViewDetails(report._id)}
-                    className="bg-medical-600 hover:bg-medical-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <Eye className="w-4 h-4" />
-                    View Details
-                  </button>
-                  <button
-                    onClick={() => handleDownloadReport(report._id)}
-                    disabled={downloading === report._id}
-                    className="border-2 border-medical-600 text-medical-600 hover:bg-medical-50 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap"
-                  >
-                    {downloading === report._id ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-medical-600"></div>
-                        Downloading...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4" />
-                        Download PDF
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteReport(report._id, `Report #${report._id?.slice(-8).toUpperCase()}`)}
-                    disabled={deleting === report._id}
-                    className="border-2 border-red-600 text-red-600 hover:bg-red-50 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap"
-                  >
-                    {deleting === report._id ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-                        Deleting...
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+              );
+            })}
 
           {/* Pagination */}
           {filteredReports.length > itemsPerPage && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredReports.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-            />
+            <div className="mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredReports.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
           )}
           </>
         )}
@@ -431,6 +576,7 @@ const Reports = () => {
         {...confirmDialog}
         onClose={() => setConfirmDialog({ isOpen: false })}
       />
+      </div>
     </div>
   );
 };
