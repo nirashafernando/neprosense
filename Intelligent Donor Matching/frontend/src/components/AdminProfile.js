@@ -13,11 +13,13 @@ import {
     MapPin,
     Calendar,
     Shield,
-    CheckCircle
+    CheckCircle,
+    PlayCircle
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/axios";
 import { useToast } from "./Toast";
+import OnboardingTutorial from "./OnboardingTutorial";
 
 const AdminProfile = () => {
     const { user } = useAuth();
@@ -43,6 +45,7 @@ const AdminProfile = () => {
     const [loading, setLoading] = useState(false);
     const [fetchingStats, setFetchingStats] = useState(true);
     const [error, setError] = useState(null);
+    const [showOnboarding, setShowOnboarding] = useState(false);
 
     useEffect(() => {
         fetchStats();
@@ -126,6 +129,12 @@ const AdminProfile = () => {
         }
     };
 
+    const handleRestartTutorial = () => {
+        localStorage.removeItem('hasSeenOnboarding');
+        setShowOnboarding(true);
+        showSuccess('Tutorial restarted! Follow the steps to learn about the system.');
+    };
+
     const statsCards = [
         {
             title: "Total Predictions",
@@ -206,17 +215,28 @@ const AdminProfile = () => {
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                 {/* Profile Header */}
                 <div className="bg-gradient-to-r from-medical-600 to-teal-600 p-8 text-white">
-                    <div className="flex items-center gap-6">
-                        <div className="bg-white/20 backdrop-blur-sm p-6 rounded-full">
-                            <User className="w-16 h-16 text-white" />
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                            <div className="bg-white/20 backdrop-blur-sm p-6 rounded-full">
+                                <User className="w-16 h-16 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-bold mb-2">Professional Profile</h2>
+                                <p className="text-medical-100 flex items-center gap-2">
+                                    <Shield className="w-4 h-4" />
+                                    Healthcare Professional Information
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h2 className="text-3xl font-bold mb-2">Professional Profile</h2>
-                            <p className="text-medical-100 flex items-center gap-2">
-                                <Shield className="w-4 h-4" />
-                                Healthcare Professional Information
-                            </p>
-                        </div>
+                        
+                        {/* Restart Tutorial Button */}
+                        <button
+                            onClick={handleRestartTutorial}
+                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-lg flex items-center gap-2 transition-all border border-white/30"
+                        >
+                            <PlayCircle className="w-5 h-5" />
+                            <span className="font-medium">Restart Tutorial</span>
+                        </button>
                     </div>
                 </div>
 
@@ -378,6 +398,14 @@ const AdminProfile = () => {
 
             {/* Toast Notifications */}
             {ToastComponent}
+
+            {/* Onboarding Tutorial */}
+            {showOnboarding && (
+                <OnboardingTutorial
+                    userRole={user?.role}
+                    onComplete={() => setShowOnboarding(false)}
+                />
+            )}
         </div>
     );
 };
