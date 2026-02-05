@@ -45,7 +45,30 @@ const AdminProfile = () => {
 
     useEffect(() => {
         fetchStats();
+        fetchProfileData();
     }, []);
+
+    const fetchProfileData = async () => {
+        try {
+            const response = await api.get('/auth/me');
+            if (response.data.success) {
+                const userData = response.data.data;
+                setProfileData({
+                    name: userData.name || "",
+                    email: userData.email || "",
+                    role: userData.role || "",
+                    qualifications: userData.qualifications || "",
+                    experience: userData.experience || "",
+                    contactNumber: userData.contactNumber || "",
+                    specialization: userData.specialization || "",
+                    department: userData.department || "",
+                    licenseNumber: userData.licenseNumber || ""
+                });
+            }
+        } catch (err) {
+            console.error("Error fetching profile data:", err);
+        }
+    };
 
     const fetchStats = async () => {
         try {
@@ -83,15 +106,24 @@ const AdminProfile = () => {
         setError(null);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const response = await api.put('/auth/profile', {
+                qualifications: profileData.qualifications,
+                experience: profileData.experience,
+                specialization: profileData.specialization,
+                department: profileData.department,
+                contactNumber: profileData.contactNumber,
+                licenseNumber: profileData.licenseNumber
+            });
 
-            setUpdateSuccess(true);
-            setTimeout(() => {
-                setUpdateSuccess(false);
-            }, 3000);
+            if (response.data.success) {
+                setUpdateSuccess(true);
+                setTimeout(() => {
+                    setUpdateSuccess(false);
+                }, 3000);
+            }
         } catch (err) {
             console.error("Error updating profile:", err);
-            setError("Failed to update profile. Please try again.");
+            setError(err.response?.data?.message || "Failed to update profile. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -310,7 +342,7 @@ const AdminProfile = () => {
                                     type="tel"
                                     value={profileData.contactNumber}
                                     onChange={(e) => handleInputChange("contactNumber", e.target.value)}
-                                    placeholder="+1 (555) 000-0000"
+                                    placeholder="+94 7XX XXX XXX"
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-500 focus:border-transparent transition-all"
                                 />
                             </div>
