@@ -1,13 +1,116 @@
-import React, { useState } from "react";
-import { useLocation, Link, Outlet } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { useLocation, Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import logo from "../logo.png";
+import api from "../lib/axios";
 
 const FrontPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchResults, setSearchResults] = useState({
+    reports: [],
+    recipients: [],
+    donors: []
+  });
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchInputRef = useRef(null);
+  const profileRef = useRef(null);
+
+  // Load search history from localStorage
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('globalSearchHistory');
+    if (savedHistory) {
+      setSearchHistory(JSON.parse(savedHistory));
+    }
+  }, []);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setShowProfile(false);
+      }
+    };
+
+    if (showProfile) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfile]);
+
+  // Debounced search function
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      if (searchQuery.trim().length > 0) {
+        performSearch(searchQuery);
+      } else {
+        setSearchResults({ reports: [], recipients: [], donors: [] });
+      }
+    }, 300);
+
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery]);
+
+  // Perform search across all entities
+  const performSearch = async (query) => {
+    setIsSearching(true);
+    try {
+      const searchLower = query.toLowerCase();
+      
+      // Search reports
+      const reportsResponse = await api.get('/predictions/my-predictions');
+      const reports = reportsResponse.data.success ? reportsResponse.data.data : [];
+      const matchedReports = reports.filter(report => {
+        const reportId = report._id?.slice(-8).toUpperCase();
+        const recipientId = report.recipientId?.recipientId;
+        return reportId?.toLowerCase().includes(searchLower) ||
+               recipientId?.toLowerCase().includes(searchLower);
+      }).slice(0, 5);
+
+      // Search recipients
+      const recipientsResponse = await api.get('/recipients');
+      const recipients = recipientsResponse.data.success ? recipientsResponse.data.data : [];
+      const matchedRecipients = recipients.filter(recipient => 
+        recipient.recipientId?.toLowerCase().includes(searchLower) ||
+        recipient.name?.toLowerCase().includes(searchLower)
+      ).slice(0, 5);
+
+      // Search donors
+      const donorsResponse = await api.get('/donors');
+      const donors = donorsResponse.data.success ? donorsResponse.data.data : [];
+      const matchedDonors = donors.filter(donor =>
+        donor.donorId?.toLowerCase().includes(searchLower) ||
+        donor.name?.toLowerCase().includes(searchLower)
+      ).slice(0, 5);
+
+      setSearchResults({
+        reports: matchedReports,
+        recipients: matchedRecipients,
+        donors: matchedDonors
+      });
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults({ reports: [], recipients: [], donors: [] });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Add to search history
+  const addToSearchHistory = (query) => {
+    if (!query.trim()) return;
+    const newHistory = [query, ...searchHistory.filter(h => h !== query)].slice(0, 10);
+    setSearchHistory(newHistory);
+    localStorage.setItem('globalSearchHistory', JSON.stringify(newHistory));
+  };
 
   const menuItems = [
     {
@@ -125,7 +228,32 @@ const FrontPage = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    console.log("Searching for:", searchQuery);
+    if (searchQuery.trim()) {
+      addToSearchHistory(searchQuery.trim());
+      // Navigate to reports page with search query
+      navigate('/app/reports', { state: { searchQuery: searchQuery.trim() } });
+      setShowSearchResults(false);
+      setSearchQuery("");
+    }
+  };
+
+  // Navigate to specific result
+  const navigateToResult = (type, item) => {
+    addToSearchHistory(searchQuery.trim());
+    setShowSearchResults(false);
+    setSearchQuery("");
+
+    if (type === 'report') {
+      navigate('/app/reports', { state: { searchQuery: item._id?.slice(-8).toUpperCase() } });
+    } else if (type === 'recipient') {
+      navigate('/app/make-prediction', { state: { recipientId: item.recipientId } });
+    } else if (type === 'donor') {
+      navigate('/app/make-prediction', { state: { donorId: item.donorId } });
+    }
+  };
+
+  const getTotalResults = () => {
+    return searchResults.reports.length + searchResults.recipients.length + searchResults.donors.length;
   };
 
   return (
@@ -203,11 +331,17 @@ const FrontPage = () => {
               <form onSubmit={handleSearch} className="relative">
                 <div className="relative">
                   <input
+                    ref={searchInputRef}
                     type="text"
                     placeholder="Search patients, reports, or data..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-medical-500 outline-none"
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowSearchResults(true);
+                    }}
+                    onFocus={() => setShowSearchResults(true)}
+                    onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-500 focus:border-medical-500 outline-none"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg
@@ -224,34 +358,208 @@ const FrontPage = () => {
                       />
                     </svg>
                   </div>
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSearchResults({ reports: [], recipients: [], donors: [] });
+                      }}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
+
+                {/* Search Results Dropdown */}
+                {showSearchResults && (searchQuery.length > 0 || searchHistory.length > 0) && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                    {isSearching && (
+                      <div className="p-4 text-center">
+                        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-medical-600"></div>
+                        <p className="text-sm text-gray-600 mt-2">Searching...</p>
+                      </div>
+                    )}
+
+                    {!isSearching && searchQuery.length > 0 && getTotalResults() === 0 && (
+                      <div className="p-4 text-center">
+                        <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-sm text-gray-600">No results found for "{searchQuery}"</p>
+                      </div>
+                    )}
+
+                    {!isSearching && getTotalResults() > 0 && (
+                      <div className="p-2">
+                        {/* Reports Section */}
+                        {searchResults.reports.length > 0 && (
+                          <div className="mb-3">
+                            <div className="px-3 py-2 flex items-center gap-2">
+                              <svg className="w-4 h-4 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Reports</span>
+                            </div>
+                            {searchResults.reports.map((report, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => navigateToResult('report', report)}
+                                className="w-full px-3 py-2 hover:bg-medical-50 rounded-lg text-left transition-colors"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      Report #{report._id?.slice(-8).toUpperCase()}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      Recipient: {report.recipientId?.recipientId || 'N/A'}
+                                    </p>
+                                  </div>
+                                  <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                                    {report.status || 'Completed'}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Recipients Section */}
+                        {searchResults.recipients.length > 0 && (
+                          <div className="mb-3">
+                            <div className="px-3 py-2 flex items-center gap-2">
+                              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Recipients</span>
+                            </div>
+                            {searchResults.recipients.map((recipient, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => navigateToResult('recipient', recipient)}
+                                className="w-full px-3 py-2 hover:bg-blue-50 rounded-lg text-left transition-colors"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {recipient.recipientId}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {recipient.name || 'Patient'} • Age: {recipient.age || 'N/A'}
+                                    </p>
+                                  </div>
+                                  <span className="text-xs text-blue-600 font-medium">
+                                    View →
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Donors Section */}
+                        {searchResults.donors.length > 0 && (
+                          <div className="mb-2">
+                            <div className="px-3 py-2 flex items-center gap-2">
+                              <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              </svg>
+                              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Donors</span>
+                            </div>
+                            {searchResults.donors.map((donor, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => navigateToResult('donor', donor)}
+                                className="w-full px-3 py-2 hover:bg-rose-50 rounded-lg text-left transition-colors"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {donor.donorId}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {donor.name || 'Donor'} • Blood: {donor.bloodType || 'N/A'}
+                                    </p>
+                                  </div>
+                                  <span className="text-xs text-rose-600 font-medium">
+                                    View →
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* View All Results */}
+                        <button
+                          onClick={(e) => handleSearch(e)}
+                          className="w-full px-3 py-2 mt-2 bg-medical-600 hover:bg-medical-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          View All Results ({getTotalResults()})
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Search History */}
+                    {!isSearching && searchQuery.length === 0 && searchHistory.length > 0 && (
+                      <div className="p-2">
+                        <div className="px-3 py-2 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Recent Searches</span>
+                        </div>
+                        {searchHistory.slice(0, 5).map((item, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setSearchQuery(item);
+                              searchInputRef.current?.focus();
+                            }}
+                            className="w-full px-3 py-2 hover:bg-gray-50 rounded-lg text-left transition-colors flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <span className="text-sm text-gray-700">{item}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </form>
             </div>
 
             {/* Right side - Actions and Profile */}
             <div className="flex items-center space-x-4">
               {/* Profile Icon */}
-              <div className="relative">
+              <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setShowProfile(!showProfile)}
-                  className="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-all"
                 >
-                  <img
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face"
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full border-2 border-gray-300"
-                  />
+                  <div className="w-8 h-8 rounded-full bg-medical-600 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
                   <svg
-                    className={`w - 4 h - 4 text - gray - 400 transition - transform ${showProfile ? "transform rotate-180" : ""
-                      } `}
+                    className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${
+                      showProfile ? "transform rotate-180" : ""
+                    }`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    strokeWidth={2}
                   >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
                       d="M19 9l-7 7-7-7"
                     />
                   </svg>
@@ -259,26 +567,30 @@ const FrontPage = () => {
 
                 {/* Profile Dropdown */}
                 {showProfile && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-gray-200">
-                      <p className="text-sm font-medium text-gray-800">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden z-50">
+                    <div className="p-3 border-b border-slate-200">
+                      <p className="text-sm font-semibold text-slate-800">
                         {user?.name || 'User'}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-slate-500 mt-0.5">
                         {user?.email || ''}
                       </p>
-                      <p className="text-xs text-green-600 mt-1">
-                        {user?.role || 'User'}
-                      </p>
+                      <span className="inline-block mt-1.5 text-xs font-medium text-medical-600 bg-medical-50 px-2 py-0.5 rounded">
+                        {user?.role || 'Clinician'}
+                      </span>
                     </div>
-                    <div className="border-t border-gray-200 mt-2">
+
+                    <div className="p-2">
                       <button
                         onClick={() => {
                           logout();
                         }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 hover:bg-rose-50 hover:text-rose-600 rounded-md font-medium text-sm transition-all"
                       >
-                        Sign Out
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Sign Out</span>
                       </button>
                     </div>
                   </div>
