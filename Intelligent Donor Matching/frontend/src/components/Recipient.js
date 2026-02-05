@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { User, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import api from "../lib/axios";
-
+import api from "../lib/axios";import { useToast } from "./Toast";
+import MedicalTooltip from "./MedicalTooltip";
 const AddRecipient = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError, ToastComponent } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -77,7 +78,7 @@ const AddRecipient = () => {
       const response = await api.post('/recipients', recipientData);
 
       if (response.data.success) {
-        alert("Recipient details submitted successfully!");
+        showSuccess("Recipient details submitted successfully!");
         // Reset form
         setFormData({
           recipientId: "",
@@ -332,7 +333,9 @@ const AddRecipient = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="bloodGroup" className="block text-sm font-medium text-gray-700 mb-2">
-                    Blood Group
+                    <MedicalTooltip term="Blood Group" position="top">
+                      Blood Group
+                    </MedicalTooltip>
                   </label>
                   <select
                     id="bloodGroup"
@@ -357,7 +360,9 @@ const AddRecipient = () => {
 
                 <div>
                   <label htmlFor="hlaTyping" className="block text-sm font-medium text-gray-700 mb-2">
-                    HLA Typing
+                    <MedicalTooltip term="HLA" position="top">
+                      HLA Typing
+                    </MedicalTooltip>
                   </label>
                   <input
                     type="text"
@@ -381,7 +386,9 @@ const AddRecipient = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label htmlFor="bmi" className="block text-sm font-medium text-gray-700 mb-2">
-                      BMI (kg/m²) <span className="text-xs text-gray-500">Auto-calculated</span>
+                      <MedicalTooltip term="BMI" position="top">
+                        BMI (kg/m²) <span className="text-xs text-gray-500">Auto-calculated</span>
+                      </MedicalTooltip>
                     </label>
                     <input
                       type="text"
@@ -417,7 +424,9 @@ const AddRecipient = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                   <div>
                     <label htmlFor="gfr" className="block text-sm font-medium text-gray-700 mb-2">
-                      GFR (mL/min)
+                      <MedicalTooltip term="eGFR" position="top">
+                        GFR (mL/min)
+                      </MedicalTooltip>
                     </label>
                     <input
                       type="number"
@@ -490,7 +499,9 @@ const AddRecipient = () => {
 
                   <div>
                     <label htmlFor="pra" className="block text-sm font-medium text-gray-700 mb-2">
-                      PRA (%) <span className="text-xs text-gray-500">Panel Reactive Antibody</span>
+                      <MedicalTooltip term="PRA" position="top">
+                        PRA (%) <span className="text-xs text-gray-500">Panel Reactive Antibody</span>
+                      </MedicalTooltip>
                     </label>
                     <input
                       type="number"
@@ -579,6 +590,7 @@ const AddRecipient = () => {
           </form>
         </div>
       </div>
+      {ToastComponent}
     </div>
   );
 };

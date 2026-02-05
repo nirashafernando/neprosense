@@ -2,6 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { X, Award, TrendingUp, Activity, Users, CheckCircle, AlertTriangle, Download, Heart, Eye } from 'lucide-react';
 import api from '../lib/axios';
 import MatchParameterExplanation from './MatchParameterExplanation';
+import MedicalTooltip from './MedicalTooltip';
+
+// Helper function to check blood group compatibility
+const isBloodGroupCompatible = (donorBloodGroup, recipientBloodGroup) => {
+    const compatibilityMap = {
+        'O-': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'], // Universal donor
+        'O+': ['O+', 'A+', 'B+', 'AB+'],
+        'A-': ['A-', 'A+', 'AB-', 'AB+'],
+        'A+': ['A+', 'AB+'],
+        'B-': ['B-', 'B+', 'AB-', 'AB+'],
+        'B+': ['B+', 'AB+'],
+        'AB-': ['AB-', 'AB+'],
+        'AB+': ['AB+'] // Universal recipient
+    };
+    
+    const compatibleRecipients = compatibilityMap[donorBloodGroup] || [];
+    return compatibleRecipients.includes(recipientBloodGroup);
+};
 
 const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
     const [loading, setLoading] = useState(true);
@@ -38,7 +56,22 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                 console.log('========================');
                 // ===== END DEBUG =====
 
-                setData(response.data.data);
+                // Recalculate blood compatibility on frontend to ensure correctness
+                const dataWithCorrectCompatibility = {
+                    ...response.data.data,
+                    topDonors: response.data.data.topDonors.map(donor => ({
+                        ...donor,
+                        parameters: {
+                            ...donor.parameters,
+                            bloodGroupCompatible: isBloodGroupCompatible(
+                                donor.parameters.bloodGroup,
+                                response.data.data.recipient.bloodGroup
+                            )
+                        }
+                    }))
+                };
+
+                setData(dataWithCorrectCompatibility);
             }
             setLoading(false);
         } catch (err) {
@@ -459,7 +492,34 @@ const ComparisonRow = ({ label, icon, values, recipient, bestIndex = -1, compati
             <td className="px-4 py-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                     {icon}
-                    <span>{label}</span>
+                    {/* Map label to tooltip term */}
+                    {label === 'Blood Group' ? (
+                        <MedicalTooltip term="Blood Compatibility" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'Age' ? (
+                        <MedicalTooltip term="Age" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'HLA Match' ? (
+                        <MedicalTooltip term="HLA" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'eGFR' ? (
+                        <MedicalTooltip term="eGFR" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'BMI' ? (
+                        <MedicalTooltip term="BMI" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'Health Status' ? (
+                        <MedicalTooltip term="Comorbidities" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : (
+                        <span>{label}</span>
+                    )}
                     {recipient && <span className="text-xs text-gray-500">({recipient})</span>}
                 </div>
             </td>

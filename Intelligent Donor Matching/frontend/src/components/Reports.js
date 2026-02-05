@@ -16,9 +16,15 @@ import {
 } from "lucide-react";
 import api from "../lib/axios";
 import MatchDetailsModal from "./MatchDetailsModal";
+import { useToast } from "./Toast";
+import ConfirmDialog from "./ConfirmDialog";
+import EmptyState from "./EmptyState";
+import Pagination from "./Pagination";
 
 const Reports = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError, showWarning, ToastComponent } = useToast();
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,6 +34,8 @@ const Reports = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [downloading, setDownloading] = useState(null); // Track which report is downloading
   const [deleting, setDeleting] = useState(null); // Track which report is being deleted
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchReports();
@@ -63,7 +71,7 @@ const Reports = () => {
   const handleDownloadReport = async (reportId) => {
     setDownloading(reportId);
     try {
-      const response = await api.get(`/ predictions / batch / ${reportId}/pdf`, {
+      const response = await api.get(`/predictions/batch/${reportId}/pdf`, {
         responseType: 'blob'
       });
 
@@ -76,19 +84,30 @@ const Reports = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      showSuccess('Report downloaded successfully');
     } catch (err) {
       console.error('Error downloading PDF:', err);
-      alert('Failed to download PDF report. Please try again.');
+      showError('Failed to download PDF report. Please try again.');
     } finally {
       setDownloading(null);
     }
   };
 
   const handleDeleteReport = async (reportId, reportName) => {
-    if (!window.confirm(`Are you sure you want to delete ${reportName}? This action cannot be undone.`)) {
-      return;
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: "Delete Report?",
+      message: `Are you sure you want to delete ${reportName}? This action cannot be undone.`,
+      type: "danger",
+      confirmText: "Delete Report",
+      onConfirm: () => {
+        setConfirmDialog({ isOpen: false });
+        executeDelete(reportId);
+      }
+    });
+  };
 
+  const executeDelete = async (reportId) => {
     setDeleting(reportId);
     try {
       await api.delete(`/predictions/batch/${reportId}`);
@@ -96,11 +115,10 @@ const Reports = () => {
       // Remove from local state
       setReports(reports.filter(r => r._id !== reportId));
 
-      // Show success message (optional)
-      alert('Report deleted successfully');
+      showSuccess('Report deleted successfully');
     } catch (err) {
       console.error('Error deleting report:', err);
-      alert('Failed to delete report: ' + (err.response?.data?.message || err.message));
+      showError('Failed to delete report: ' + (err.response?.data?.message || err.message));
     } finally {
       setDeleting(null);
     }
@@ -144,6 +162,12 @@ const Reports = () => {
     return matchesSearch && report.status === filterStatus;
   });
 
+  // Pagination
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedReports = filteredReports.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -176,9 +200,9 @@ const Reports = () => {
             <div>
               <p className="text-sm text-gray-600 font-medium">Low Risk</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.reduce((count, r) => 
-                  count + (r.predictions?.filter(p => p.riskCategory?.category?.toLowerCase().includes('low')).length || 0), 0
-                )}
+                {reports.filter(r => 
+                  r.predictions?.some(p => p.riskCategory?.category?.toLowerCase().includes('low'))
+                ).length}
               </p>
             </div>
             <CheckCircle className="w-10 h-10 text-green-500" />
@@ -190,9 +214,9 @@ const Reports = () => {
             <div>
               <p className="text-sm text-gray-600 font-medium">Medium Risk</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.reduce((count, r) => 
-                  count + (r.predictions?.filter(p => p.riskCategory?.category?.toLowerCase().includes('medium')).length || 0), 0
-                )}
+                {reports.filter(r => 
+                  r.predictions?.some(p => p.riskCategory?.category?.toLowerCase().includes('medium'))
+                ).length}
               </p>
             </div>
             <AlertCircle className="w-10 h-10 text-yellow-500" />
@@ -204,9 +228,9 @@ const Reports = () => {
             <div>
               <p className="text-sm text-gray-600 font-medium">High Risk</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.reduce((count, r) => 
-                  count + (r.predictions?.filter(p => p.riskCategory?.category?.toLowerCase().includes('high')).length || 0), 0
-                )}
+                {reports.filter(r => 
+                  r.predictions?.some(p => p.riskCategory?.category?.toLowerCase().includes('high'))
+                ).length}
               </p>
             </div>
             <AlertCircle className="w-10 h-10 text-red-500" />
@@ -259,22 +283,13 @@ const Reports = () => {
             <p className="text-gray-600">Loading reports...</p>
           </div>
         ) : filteredReports.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
-            <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Reports Found</h3>
-            <p className="text-gray-600 mb-6">
-              {searchQuery ? "Try adjusting your search criteria" : "Start by making a prediction to generate reports"}
-            </p>
-            <button
-              onClick={() => navigate('/app/make-prediction')}
-              className="bg-medical-600 hover:bg-medical-700 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center gap-2"
-            >
-              <Heart className="w-5 h-5" />
-              Make a Prediction
-            </button>
-          </div>
+          <EmptyState 
+            type={searchQuery ? "searchResults" : "reports"}
+            onAction={() => navigate('/app/make-prediction')}
+          />
         ) : (
-          filteredReports.map((report, index) => (
+          <>
+            {paginatedReports.map((report, index) => (
             <div
               key={report._id || index}
               className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-6 border-l-4 border-medical-500"
@@ -385,7 +400,19 @@ const Reports = () => {
                 </div>
               </div>
             </div>
-          ))
+          ))}
+
+          {/* Pagination */}
+          {filteredReports.length > itemsPerPage && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredReports.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+            />
+          )}
+          </>
         )}
       </div>
 
@@ -394,6 +421,15 @@ const Reports = () => {
         isOpen={isModalOpen}
         onClose={closeModal}
         predictionId={selectedPredictionId}
+      />
+
+      {/* Toast Notifications */}
+      {ToastComponent}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        {...confirmDialog}
+        onClose={() => setConfirmDialog({ isOpen: false })}
       />
     </div>
   );

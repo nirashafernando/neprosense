@@ -5,6 +5,23 @@ import BatchPredictionRequest from '../models/BatchPredictionRequest.js';
 import Donor from '../models/Donor.js';
 import Recipient from '../models/Recipient.js';
 
+// Helper function to check blood group compatibility
+const isBloodGroupCompatible = (donorBloodGroup, recipientBloodGroup) => {
+    const compatibilityMap = {
+        'O-': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'], // Universal donor
+        'O+': ['O+', 'A+', 'B+', 'AB+'],
+        'A-': ['A-', 'A+', 'AB-', 'AB+'],
+        'A+': ['A+', 'AB+'],
+        'B-': ['B-', 'B+', 'AB-', 'AB+'],
+        'B+': ['B+', 'AB+'],
+        'AB-': ['AB-', 'AB+'],
+        'AB+': ['AB+'] // Universal recipient
+    };
+    
+    const compatibleRecipients = compatibilityMap[donorBloodGroup] || [];
+    return compatibleRecipients.includes(recipientBloodGroup);
+};
+
 // @desc    Submit donor-recipient matching prediction
 // @route   POST /api/predictions/predict
 // @access  Private (Clinician only)
@@ -398,6 +415,14 @@ export const getBatchPredictionDetails = async (req, res) => {
             .slice(0, 3)
             .map((pred, index) => {
                 const donor = batchPrediction.donorIds.find(d => d.donorId === pred.donorId);
+                const recipient = batchPrediction.recipientId;
+                
+                // Calculate blood group compatibility
+                const donorBloodGroup = donor?.bloodGroup || 'N/A';
+                const recipientBloodGroup = recipient?.bloodGroup || 'N/A';
+                const bloodCompatible = donorBloodGroup !== 'N/A' && recipientBloodGroup !== 'N/A' 
+                    ? isBloodGroupCompatible(donorBloodGroup, recipientBloodGroup)
+                    : (pred.parameters?.bloodGroupCompatible ?? true);
 
                 return {
                     rank: index + 1,
@@ -408,8 +433,8 @@ export const getBatchPredictionDetails = async (req, res) => {
                     riskCategory: pred.riskCategory,
                     shapExplanation: pred.shapExplanation || [],
                     parameters: {
-                        bloodGroup: donor?.bloodGroup || 'N/A',
-                        bloodGroupCompatible: pred.parameters?.bloodGroupCompatible ?? true, // From ML service
+                        bloodGroup: donorBloodGroup,
+                        bloodGroupCompatible: bloodCompatible, // Calculated compatibility
                         age: donor?.age || 0,
                         bmi: donor?.bmi || 0,
                         gfr: donor?.gfr || 0,

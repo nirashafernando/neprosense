@@ -3,9 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Heart, ArrowLeft, Loader, AlertCircle, CheckSquare, Square } from "lucide-react";
 import api from "../lib/axios";
 import RiskBasedResults from "./RiskBasedResults";
+import { useToast } from "./Toast";
+import ConfirmDialog from "./ConfirmDialog";
+import MedicalTooltip from "./MedicalTooltip";
 
 const MakePrediction = () => {
     const navigate = useNavigate();
+    const { showSuccess, showError, showWarning, ToastComponent } = useToast();
+    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
 
     // Data lists
     const [donors, setDonors] = useState([]);
@@ -43,7 +48,9 @@ const MakePrediction = () => {
             setLoading(false);
         } catch (err) {
             console.error("Error fetching data:", err);
-            setError("Failed to load donors and recipients");
+            showError("Failed to load donors and recipients", {
+                action: { label: "Retry", onClick: fetchData }
+            });
             setLoading(false);
         }
     };
@@ -75,14 +82,30 @@ const MakePrediction = () => {
 
     const handleRunMatching = async () => {
         if (!selectedRecipient) {
-            setError("Please select a recipient");
+            showWarning("Please select a recipient");
             return;
         }
 
         if (!selectAll && selectedDonorIds.length === 0) {
-            setError("Please select at least one donor or enable 'Select All Donors'");
+            showWarning("Please select at least one donor or enable 'Select All Donors'");
             return;
         }
+
+        // Show confirmation dialog before running prediction
+        setConfirmDialog({
+            isOpen: true,
+            title: "Run Matching Prediction?",
+            message: `This will analyze ${selectAll ? donors.length : selectedDonorIds.length} donor(s) for recipient ${selectedRecipient.name || selectedRecipient.recipientId}.`,
+            type: "info",
+            confirmText: "Run Prediction",
+            onConfirm: () => {
+                setConfirmDialog({ isOpen: false });
+                executePrediction();
+            }
+        });
+    };
+
+    const executePrediction = async () => {
 
         setPredicting(true);
         setError(null);
@@ -97,11 +120,14 @@ const MakePrediction = () => {
 
             if (response.data.success) {
                 setResult(response.data.data);
+                showSuccess(`Successfully analyzed ${response.data.data.predictions?.length || 0} matches!`);
             }
             setPredicting(false);
         } catch (err) {
             console.error("Error making prediction:", err);
-            setError(err.response?.data?.message || "Failed to make prediction");
+            showError(err.response?.data?.message || "Failed to make prediction", {
+                action: { label: "Retry", onClick: executePrediction }
+            });
             setPredicting(false);
         }
     };
@@ -327,9 +353,21 @@ const MakePrediction = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* AI Results */}
+                        {result && <RiskBasedResults result={result} />}
                     </div>
                 )}
             </div>
+
+            {/* Toast Notifications */}
+            {ToastComponent}
+
+            {/* Confirmation Dialog */}
+            <ConfirmDialog
+                {...confirmDialog}
+                onClose={() => setConfirmDialog({ isOpen: false })}
+            />
         </div>
     );
 };
