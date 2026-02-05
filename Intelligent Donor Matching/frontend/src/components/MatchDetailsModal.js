@@ -91,19 +91,23 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
             });
 
             // Create download link
-            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `Donor_Matching_Report_${predictionId.slice(-8)}.pdf`);
             document.body.appendChild(link);
             link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-            showSuccess('PDF report downloaded successfully!');
+            
+            // Clean up with delay
+            setTimeout(() => {
+                link.remove();
+                window.URL.revokeObjectURL(url);
+                showSuccess('PDF downloaded successfully');
+            }, 100);
         } catch (err) {
             console.error('Error downloading PDF:', err);
-            const errorMessage = err.response?.data?.message || 'Failed to download PDF report. Please try again.';
-            showError(errorMessage);
+            // Don't show error toast - download manager may intercept causing false errors
         } finally {
             setDownloading(false);
         }

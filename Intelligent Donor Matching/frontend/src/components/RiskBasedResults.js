@@ -49,11 +49,11 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
     return (
         <div className="space-y-6">
             {/* Header with Summary */}
-            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+            <div className="bg-gradient-to-r from-medical-600 to-teal-600 rounded-lg shadow-lg p-6 text-white">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold mb-2">Analysis Complete</h2>
-                        <p className="text-green-100">
+                        <p className="text-medical-50">
                             Evaluated <span className="font-bold">{totalEvaluated}</span> donor(s) |
                             Top recommendation available
                         </p>
@@ -63,7 +63,7 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
             </div>
 
             {/* Top 3 Donors - Highlighted */}
-            <div className="bg-white rounded-lg shadow-sm p-6 border-2 border-green-300">
+            <div className="bg-white rounded-lg shadow-sm p-6 border-2 border-medical-200">
                 <div className="flex items-center space-x-2 mb-4">
                     <Trophy className="w-6 h-6 text-yellow-500" />
                     <h3 className="text-xl font-bold text-gray-900">Top 3 Recommended Donors (Lowest Risk)</h3>

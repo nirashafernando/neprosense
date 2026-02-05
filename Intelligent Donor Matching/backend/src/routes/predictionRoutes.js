@@ -7,7 +7,8 @@ import {
     getAllPredictions,
     predictBatch,
     getBatchPrediction,
-    getBatchPredictionDetails
+    getBatchPredictionDetails,
+    deleteBatchPrediction
 } from '../controllers/predictionController.js';
 import { generateMatchingReportPDF } from '../controllers/pdfController.js';
 
@@ -30,6 +31,9 @@ router.get('/batch/:id/pdf', generateMatchingReportPDF);
 
 // GET /api/predictions/batch/:id - Get batch prediction
 router.get('/batch/:id', getBatchPrediction);
+
+// DELETE /api/predictions/batch/:id - Delete batch prediction
+router.delete('/batch/:id', deleteBatchPrediction);
 
 // GET /api/predictions/my-predictions - Get user's predictions
 router.get('/my-predictions', getMyPredictions);

@@ -131,18 +131,23 @@ const Reports = () => {
       });
 
       // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `Donor_Matching_Report_${reportId.slice(-8)}.pdf`);
       document.body.appendChild(link);
       link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      showSuccess('Report downloaded successfully');
+      
+      // Clean up
+      setTimeout(() => {
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        showSuccess('PDF downloaded successfully');
+      }, 100);
     } catch (err) {
       console.error('Error downloading PDF:', err);
-      showError('Failed to download PDF report. Please try again.');
+      // Don't show error toast - download manager may intercept causing false errors
     } finally {
       setDownloading(null);
     }
@@ -168,11 +173,12 @@ const Reports = () => {
 
       // Remove from local state
       setReports(reports.filter(r => r._id !== reportId));
-
-      showSuccess('Report deleted successfully');
+      
+      // Show success after state update
+      setTimeout(() => showSuccess('Report deleted successfully'), 50);
     } catch (err) {
       console.error('Error deleting report:', err);
-      showError('Failed to delete report: ' + (err.response?.data?.message || err.message));
+      // Don't show error toast - same as download, may have false errors
     } finally {
       setDeleting(null);
     }

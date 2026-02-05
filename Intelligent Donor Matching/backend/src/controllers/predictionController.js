@@ -575,3 +575,41 @@ function generateMatchExplanation(topDonor, recipient) {
     return reasons;
 }
 
+// @desc    Delete batch prediction
+// @route   DELETE /api/predictions/batch/:id
+// @access  Private
+export const deleteBatchPrediction = async (req, res) => {
+    try {
+        const batchPrediction = await BatchPredictionRequest.findById(req.params.id);
+
+        if (!batchPrediction) {
+            return res.status(404).json({
+                success: false,
+                message: 'Batch prediction not found'
+            });
+        }
+
+        // Authorization check - only the user who created it or admin can delete
+        if (batchPrediction.user.toString() !== req.user._id.toString() && req.user.role !== 'Admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to delete this prediction'
+            });
+        }
+
+        await BatchPredictionRequest.findByIdAndDelete(req.params.id);
+
+        res.status(200).json({
+            success: true,
+            message: 'Batch prediction deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete batch prediction error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete batch prediction',
+            error: error.message
+        });
+    }
+};
+
