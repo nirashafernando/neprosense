@@ -12,6 +12,7 @@ const DetailedMatchInformation = () => {
 
   useEffect(() => {
     fetchMatchDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [donorId, recipientId]);
 
   const fetchMatchDetails = async () => {
@@ -74,12 +75,29 @@ const DetailedMatchInformation = () => {
   };
 
   const calculateHLAMatch = (donorHLA, recipientHLA) => {
-    // Simple similarity check - in production this would be more sophisticated
-    if (!donorHLA || !recipientHLA) return 50;
-    const donorTypes = donorHLA.split(',').map(s => s.trim());
-    const recipientTypes = recipientHLA.split(',').map(s => s.trim());
-    const matches = donorTypes.filter(d => recipientTypes.some(r => r === d)).length;
-    return Math.round((matches / Math.max(donorTypes.length, recipientTypes.length)) * 100);
+    // Clinical HLA matching: returns score 0-6 based on antigen matches
+    if (!donorHLA || !recipientHLA) return 0;
+
+    try {
+      // Parse HLA typing strings
+      const donorAntigens = donorHLA.split(',').map(s => s.trim().toUpperCase());
+      const recipientAntigens = recipientHLA.split(',').map(s => s.trim().toUpperCase());
+
+      // Count exact matches
+      let matchCount = 0;
+      for (const donorAg of donorAntigens) {
+        if (recipientAntigens.includes(donorAg)) {
+          matchCount++;
+        }
+      }
+
+      // Return clinical score (0-6), converted to percentage for display
+      // Since UI expects percentage, convert: (matchCount / 6) * 100
+      return Math.round((matchCount / 6) * 100);
+    } catch (error) {
+      console.error('Error calculating HLA match:', error);
+      return 0;
+    }
   };
 
   const calculateAgeWeightMatch = (donorAge, donorWeight, recipientAge, recipientWeight) => {
@@ -306,10 +324,10 @@ const DetailedMatchInformation = () => {
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div
                       className={`h-3 rounded-full transition-all duration-300 ${matchData.riskProbabilityScore >= 80
-                          ? "bg-green-500"
-                          : matchData.riskProbabilityScore >= 60
-                            ? "bg-yellow-500"
-                            : "bg-red-500"
+                        ? "bg-green-500"
+                        : matchData.riskProbabilityScore >= 60
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
                         }`}
                       style={{ width: `${matchData.riskProbabilityScore}%` }}
                     ></div>
@@ -327,10 +345,10 @@ const DetailedMatchInformation = () => {
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div
                       className={`h-3 rounded-full transition-all duration-300 ${matchData.overallCompatibility >= 80
-                          ? "bg-green-500"
-                          : matchData.overallCompatibility >= 60
-                            ? "bg-yellow-500"
-                            : "bg-red-500"
+                        ? "bg-green-500"
+                        : matchData.overallCompatibility >= 60
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
                         }`}
                       style={{ width: `${matchData.overallCompatibility}%` }}
                     ></div>

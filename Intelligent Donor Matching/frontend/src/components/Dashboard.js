@@ -5,16 +5,15 @@ import {
   Plus,
   User,
   Activity,
-  TrendingUp,
   ArrowRight,
   Edit,
   Trash2,
-  Eye,
-  Search,
-  Filter
+  Search
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/axios";
+import DashboardStats from "./DashboardStats";
+import MatchDistributionChart from "./MatchDistributionChart";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -33,6 +32,7 @@ const Dashboard = () => {
   const [editFormData, setEditFormData] = useState({});
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [predictions, setPredictions] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -45,7 +45,7 @@ const Dashboard = () => {
       const [donorsResponse, recipientsResponse, predictionsResponse] = await Promise.all([
         api.get('/donors'),
         api.get('/recipients'),
-        api.get('/predictions/my-predictions').catch(() => ({ data: { count: 0 } }))
+        api.get('/predictions/my-predictions').catch(() => ({ data: { data: [] } }))
       ]);
 
       if (donorsResponse.data.success) {
@@ -60,7 +60,9 @@ const Dashboard = () => {
         setRecipientCount(recipientData.length);
       }
 
-      setPredictionCount(predictionsResponse.data.count || predictionsResponse.data.data?.length || 0);
+      const predictionData = predictionsResponse.data.data || [];
+      setPredictions(predictionData);
+      setPredictionCount(predictionData.length);
 
       setLoading(false);
     } catch (err) {
@@ -261,6 +263,14 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Dashboard Statistics */}
+            <DashboardStats />
+
+            {/* Match Distribution Charts */}
+            {predictions.length > 0 && (
+              <MatchDistributionChart predictions={predictions} />
             )}
 
             {/* Stats Cards */}

@@ -229,12 +229,14 @@ export const predictBatch = async (req, res) => {
             recipientId: recipient.recipientId,
             age: recipient.age,
             bloodGroup: recipient.bloodGroup,
+            hlaTyping: recipient.hlaTyping || '',
             bmi: recipient.bmi || 24.0,
             creatinine: recipient.creatinine || 2.0,
             gfr: recipient.gfr || 50,
             systolicBP: recipient.systolicBP || 130,
             diastolicBP: recipient.diastolicBP || 85,
             dialysisYears: recipient.dialysisYears || 0,
+            pra: recipient.pra || 0,
             diabetes: recipient.diabetes || false,
             hypertension: recipient.hypertension || false,
             previousTransplants: recipient.previousTransplants || 0
@@ -244,6 +246,7 @@ export const predictBatch = async (req, res) => {
             donorId: donor.donorId,
             age: donor.age,
             bloodGroup: donor.bloodGroup,
+            hlaTyping: donor.hlaTyping || '',
             bmi: donor.bmi || 24.0,
             creatinine: donor.creatinine || 1.0,
             gfr: donor.gfr || 90,
@@ -391,7 +394,7 @@ export const getBatchPredictionDetails = async (req, res) => {
 
         // Get top 3 donors
         const top3Donors = batchPrediction.predictions
-            .sort((a, b) => a.probability - b.probability) // Lower probability = better match
+            .sort((a, b) => b.probability - a.probability) // Higher probability = better match (FIXED)
             .slice(0, 3)
             .map((pred, index) => {
                 const donor = batchPrediction.donorIds.find(d => d.donorId === pred.donorId);
@@ -400,16 +403,18 @@ export const getBatchPredictionDetails = async (req, res) => {
                     rank: index + 1,
                     donorId: pred.donorId,
                     donor: donor || null,
-                    matchScore: Math.round((1 - pred.probability) * 100),
+                    matchScore: Math.round(pred.probability * 100), // FIXED: Use probability directly
                     probability: pred.probability,
                     riskCategory: pred.riskCategory,
                     shapExplanation: pred.shapExplanation || [],
                     parameters: {
                         bloodGroup: donor?.bloodGroup || 'N/A',
+                        bloodGroupCompatible: pred.parameters?.bloodGroupCompatible ?? true, // From ML service
                         age: donor?.age || 0,
                         bmi: donor?.bmi || 0,
                         gfr: donor?.gfr || 0,
-                        hlaMatchScore: pred.hlaMatchScore || 0,
+                        hlaMatchScore: pred.parameters?.hlaMatchScore || pred.hlaMatchScore || 0,  // Read from parameters object
+                        hlaMatchLevel: pred.parameters?.hlaMatchLevel || 'Unknown', // From ML service
                         diabetes: donor?.diabetes || false,
                         hypertension: donor?.hypertension || false,
                         smoking: donor?.smoking || false

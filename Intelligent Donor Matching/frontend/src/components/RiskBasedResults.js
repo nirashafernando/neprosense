@@ -84,10 +84,10 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
                                 <div className="mt-2">
                                     <h4 className="font-bold text-lg text-gray-900 mb-2">{donor.donorId}</h4>
 
-                                    {/* Risk Probability */}
+                                    {/* Compatibility Score */}
                                     <div className="mb-3">
                                         <div className="flex justify-between text-sm mb-1">
-                                            <span className="font-medium text-gray-700">Risk Probability</span>
+                                            <span className="font-medium text-gray-700">Compatibility Score</span>
                                             <span className={`font-bold ${colors.text}`}>
                                                 {(donor.probability * 100).toFixed(1)}%
                                             </span>
@@ -158,7 +158,7 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
                                                     <div className="text-2xl font-bold text-gray-900">
                                                         {(pred.probability * 100).toFixed(1)}%
                                                     </div>
-                                                    <div className="text-xs text-gray-500">Risk Score</div>
+                                                    <div className="text-xs text-gray-500">Compatibility Score</div>
                                                 </div>
 
                                                 <div className={`px-4 py-2 rounded-full font-semibold text-sm border-2 ${colors.badge} ${colors.text}`}>
@@ -192,8 +192,8 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
                                                             <p className="text-xs text-gray-500 mt-1">{exp.description}</p>
                                                         </div>
                                                         <div className={`ml-4 px-3 py-1 rounded text-xs font-semibold ${exp.importance > 0
-                                                                ? "bg-red-100 text-red-700"
-                                                                : "bg-green-100 text-green-700"
+                                                                ? "bg-green-100 text-green-700"
+                                                                : "bg-red-100 text-red-700"
                                                             }`}>
                                                             {exp.importance > 0 ? "↑" : "↓"} {Math.abs(exp.importance).toFixed(3)}
                                                         </div>

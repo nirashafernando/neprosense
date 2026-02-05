@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Heart, Search, Eye } from "lucide-react";
+import { Heart, Search, Eye, Calendar, Clock } from "lucide-react";
 import api from "../lib/axios";
 import MatchDetailsModal from "./MatchDetailsModal";
 
@@ -33,20 +33,35 @@ const MatchingResults = ({ onViewDetails }) => {
               donorId: topDonor ? `Best: ${topDonor.donorId}` : `${batchPred.totalEvaluated || batchPred.donorIds?.length || 0} Donors`,
               recipientId: recipientId,
               compatibilityScore: topDonor
-                ? Math.round((1 - (topDonor.probability || 0)) * 100)
+                ? Math.round((topDonor.probability || 0) * 100)
                 : 0,
               riskProbability: topDonor?.riskCategory?.category || 'Unknown',
               predictionId: batchPred._id,
-              donorsEvaluated: batchPred.totalEvaluated || batchPred.donorIds?.length || 0
+              donorsEvaluated: batchPred.totalEvaluated || batchPred.donorIds?.length || 0,
+              // Use createdAt if available, otherwise use current date
+              createdAt: batchPred.createdAt || batchPred.updatedAt || Date.now()
             };
           });
+
+          // Debug: Log first item to check data structure
+          if (transformedData.length > 0) {
+            console.log('Sample transformed data:', transformedData[0]);
+          }
 
           setMatchingData(transformedData);
         }
         setLoading(false);
       } catch (err) {
         console.error("Error fetching matching results:", err);
-        setError(err.response?.data?.message || "Failed to fetch matching results");
+        console.error("Error details:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status
+        });
+
+        // Set more specific error message
+        const errorMessage = err.response?.data?.message || err.message || "Failed to fetch matching results";
+        setError(errorMessage);
         setLoading(false);
         // Fallback to empty array if error
         setMatchingData([]);
@@ -99,6 +114,36 @@ const MatchingResults = ({ onViewDetails }) => {
     if (score >= 70) return "text-green-600 font-semibold";
     if (score >= 50) return "text-yellow-600 font-semibold";
     return "text-red-600 font-semibold";
+  };
+
+  const formatDateTime = (dateString) => {
+    try {
+      if (!dateString) {
+        return { date: 'N/A', time: 'N/A' };
+      }
+
+      const date = new Date(dateString);
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return { date: 'Invalid Date', time: 'Invalid Time' };
+      }
+
+      const dateStr = date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+      const timeStr = date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      return { date: dateStr, time: timeStr };
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return { date: 'N/A', time: 'N/A' };
+    }
   };
 
   return (
@@ -164,16 +209,22 @@ const MatchingResults = ({ onViewDetails }) => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Top Match / Donors
+                      Recommended Match
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Recipient ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Best Compatibility
+                      ML Compatibility
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Risk Category
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Time
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Action
@@ -207,6 +258,18 @@ const MatchingResults = ({ onViewDetails }) => {
                             {item.riskProbability}
                           </span>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            {formatDateTime(item.createdAt).date}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-4 h-4 text-gray-400" />
+                            {formatDateTime(item.createdAt).time}
+                          </div>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <button
                             onClick={() => handleView(item.predictionId)}
@@ -221,7 +284,7 @@ const MatchingResults = ({ onViewDetails }) => {
                   ) : (
                     <tr>
                       <td
-                        colSpan="5"
+                        colSpan="7"
                         className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center"
                       >
                         {searchTerm
@@ -250,9 +313,10 @@ const MatchingResults = ({ onViewDetails }) => {
                 <div className="text-2xl font-bold text-red-600">
                   {
                     filteredData.filter(
-                      (item) =>
-                        item.riskProbability.toLowerCase() === "high" ||
-                        item.riskProbability.toLowerCase() === "unsuitable"
+                      (item) => {
+                        const risk = item.riskProbability.toLowerCase();
+                        return risk.includes("high") || risk.includes("unsuitable");
+                      }
                     ).length
                   }
                 </div>

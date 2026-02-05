@@ -29,7 +29,7 @@ export const generateMatchingReportPDF = async (req, res) => {
 
         // Get top 3 donors
         const top3Donors = batchPrediction.predictions
-            .sort((a, b) => a.probability - b.probability)
+            .sort((a, b) => b.probability - a.probability) // Higher probability = better match (FIXED)
             .slice(0, 3)
             .map((pred, index) => {
                 const donor = batchPrediction.donorIds.find(d => d.donorId === pred.donorId);
@@ -37,7 +37,7 @@ export const generateMatchingReportPDF = async (req, res) => {
                     rank: index + 1,
                     donorId: pred.donorId,
                     donor: donor,
-                    matchScore: Math.round((1 - pred.probability) * 100),
+                    matchScore: Math.round(pred.probability * 100), // FIXED: Use probability directly
                     probability: pred.probability,
                     riskCategory: pred.riskCategory,
                     parameters: {

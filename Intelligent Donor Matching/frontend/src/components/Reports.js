@@ -10,7 +10,9 @@ import {
   CheckCircle,
   AlertCircle,
   Heart,
-  User
+  User,
+  Trash2,
+  Clock
 } from "lucide-react";
 import api from "../lib/axios";
 import MatchDetailsModal from "./MatchDetailsModal";
@@ -25,6 +27,7 @@ const Reports = () => {
   const [selectedPredictionId, setSelectedPredictionId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [downloading, setDownloading] = useState(null); // Track which report is downloading
+  const [deleting, setDeleting] = useState(null); // Track which report is being deleted
 
   useEffect(() => {
     fetchReports();
@@ -45,26 +48,6 @@ const Reports = () => {
       setError("Failed to load reports");
       setLoading(false);
     }
-  };
-
-  const getRiskCategoryColor = (category) => {
-    if (!category) return "bg-gray-100 text-gray-700";
-
-    const cat = category.toLowerCase();
-    if (cat.includes('low')) return "bg-green-100 text-green-700";
-    if (cat.includes('medium')) return "bg-yellow-100 text-yellow-700";
-    if (cat.includes('high')) return "bg-red-100 text-red-700";
-    return "bg-gray-100 text-gray-700";
-  };
-
-  const getRiskIcon = (category) => {
-    if (!category) return <AlertCircle className="w-4 h-4" />;
-
-    const cat = category.toLowerCase();
-    if (cat.includes('low')) return <CheckCircle className="w-4 h-4" />;
-    if (cat.includes('medium')) return <AlertCircle className="w-4 h-4" />;
-    if (cat.includes('high')) return <AlertCircle className="w-4 h-4" />;
-    return <AlertCircle className="w-4 h-4" />;
   };
 
   const handleViewDetails = (reportId) => {
@@ -99,6 +82,43 @@ const Reports = () => {
     } finally {
       setDownloading(null);
     }
+  };
+
+  const handleDeleteReport = async (reportId, reportName) => {
+    if (!window.confirm(`Are you sure you want to delete ${reportName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeleting(reportId);
+    try {
+      await api.delete(`/predictions/batch/${reportId}`);
+
+      // Remove from local state
+      setReports(reports.filter(r => r._id !== reportId));
+
+      // Show success message (optional)
+      alert('Report deleted successfully');
+    } catch (err) {
+      console.error('Error deleting report:', err);
+      alert('Failed to delete report: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    const dateStr = date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+    const timeStr = date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    return { date: dateStr, time: timeStr };
   };
 
   const filteredReports = reports.filter(report => {
@@ -156,7 +176,9 @@ const Reports = () => {
             <div>
               <p className="text-sm text-gray-600 font-medium">Low Risk</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.filter(r => r.riskCategory?.category?.toLowerCase().includes('low')).length}
+                {reports.reduce((count, r) => 
+                  count + (r.predictions?.filter(p => p.riskCategory?.category?.toLowerCase().includes('low')).length || 0), 0
+                )}
               </p>
             </div>
             <CheckCircle className="w-10 h-10 text-green-500" />
@@ -168,7 +190,9 @@ const Reports = () => {
             <div>
               <p className="text-sm text-gray-600 font-medium">Medium Risk</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.filter(r => r.riskCategory?.category?.toLowerCase().includes('medium')).length}
+                {reports.reduce((count, r) => 
+                  count + (r.predictions?.filter(p => p.riskCategory?.category?.toLowerCase().includes('medium')).length || 0), 0
+                )}
               </p>
             </div>
             <AlertCircle className="w-10 h-10 text-yellow-500" />
@@ -180,7 +204,9 @@ const Reports = () => {
             <div>
               <p className="text-sm text-gray-600 font-medium">High Risk</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.filter(r => r.riskCategory?.category?.toLowerCase().includes('high')).length}
+                {reports.reduce((count, r) => 
+                  count + (r.predictions?.filter(p => p.riskCategory?.category?.toLowerCase().includes('high')).length || 0), 0
+                )}
               </p>
             </div>
             <AlertCircle className="w-10 h-10 text-red-500" />
@@ -279,18 +305,26 @@ const Reports = () => {
                         <strong>Donors Evaluated:</strong> {report.totalEvaluated || report.donorIds?.length || "N/A"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        <strong>Date:</strong> {new Date(report.createdAt || Date.now()).toLocaleDateString()}
-                      </span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          <strong>Date:</strong> {formatDateTime(report.createdAt || Date.now()).date}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          <strong>Time:</strong> {formatDateTime(report.createdAt || Date.now()).time}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Show top donor info */}
                   {report.topDonors && report.topDonors.length > 0 && (
                     <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                      <p className="text-sm font-semibold text-green-800 mb-2">Top Match</p>
+                      <p className="text-sm font-semibold text-green-800 mb-2">Recommended Match (ML-Based)</p>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-700">
                           Donor: {report.topDonors[0].donorId}
@@ -328,6 +362,23 @@ const Reports = () => {
                       <>
                         <Download className="w-4 h-4" />
                         Download PDF
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteReport(report._id, `Report #${report._id?.slice(-8).toUpperCase()}`)}
+                    disabled={deleting === report._id}
+                    className="border-2 border-red-600 text-red-600 hover:bg-red-50 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap"
+                  >
+                    {deleting === report._id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        Delete
                       </>
                     )}
                   </button>

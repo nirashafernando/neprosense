@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { User, ArrowLeft, Clock } from "lucide-react";
+import { User, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../lib/axios";
 
@@ -12,6 +12,7 @@ const AddRecipient = () => {
     recipientId: "",
     name: "",
     weight: "",
+    height: "",
     age: "",
     waitingTime: "",
     bloodGroup: "",
@@ -28,15 +29,27 @@ const AddRecipient = () => {
     dialysisYears: "",
     diabetes: false,
     hypertension: false,
+    pra: "",
     previousTransplants: "",
   });
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [name]: type === "checkbox" ? checked : value,
-    }));
+    };
+    
+    // Auto-calculate BMI when weight or height changes
+    if ((name === "weight" || name === "height") && newFormData.weight && newFormData.height) {
+      const weightKg = parseFloat(newFormData.weight);
+      const heightM = parseFloat(newFormData.height) / 100; // convert cm to meters
+      if (weightKg > 0 && heightM > 0) {
+        newFormData.bmi = (weightKg / (heightM * heightM)).toFixed(1);
+      }
+    }
+    
+    setFormData(newFormData);
     setError(""); // Clear error on change
   };
 
@@ -57,8 +70,7 @@ const AddRecipient = () => {
         gfr: formData.gfr ? parseFloat(formData.gfr) : undefined,
         systolicBP: formData.systolicBP ? parseInt(formData.systolicBP) : undefined,
         diastolicBP: formData.diastolicBP ? parseInt(formData.diastolicBP) : undefined,
-        dialysisYears: formData.dialysisYears ? parseFloat(formData.dialysisYears) : undefined,
-        previousTransplants: formData.previousTransplants ? parseInt(formData.previousTransplants) : 0,
+        dialysisYears: formData.dialysisYears ? parseFloat(formData.dialysisYears) : undefined,        pra: formData.pra ? parseFloat(formData.pra) : 0,        previousTransplants: formData.previousTransplants ? parseInt(formData.previousTransplants) : 0,
         status: "waiting",
       };
 
@@ -71,6 +83,7 @@ const AddRecipient = () => {
           recipientId: "",
           name: "",
           weight: "",
+          height: "",
           age: "",
           waitingTime: "",
           bloodGroup: "",
@@ -86,6 +99,7 @@ const AddRecipient = () => {
           dialysisYears: "",
           diabetes: false,
           hypertension: false,
+          pra: "",
           previousTransplants: "",
         });
         // Navigate back to dashboard
@@ -174,21 +188,42 @@ const AddRecipient = () => {
                 </div>
               </div>
 
-              {/* Row 2: Weight and Age */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Row 2: Weight, Height, and Age */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-2">
                     Weight (kg)
                   </label>
                   <input
                     type="number"
+                    step="0.1"
                     id="weight"
                     name="weight"
                     value={formData.weight}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                    placeholder="Enter weight in kg"
+                    placeholder="e.g., 65.5"
                     min="1"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="height" className="block text-sm font-medium text-gray-700 mb-2">
+                    Height (cm)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    id="height"
+                    name="height"
+                    value={formData.height}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                    placeholder="e.g., 165"
+                    min="100"
+                    max="250"
                     required
                     disabled={isSubmitting}
                   />
@@ -346,18 +381,17 @@ const AddRecipient = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label htmlFor="bmi" className="block text-sm font-medium text-gray-700 mb-2">
-                      BMI (kg/m²)
+                      BMI (kg/m²) <span className="text-xs text-gray-500">Auto-calculated</span>
                     </label>
                     <input
-                      type="number"
-                      step="0.1"
+                      type="text"
                       id="bmi"
                       name="bmi"
-                      value={formData.bmi}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                      placeholder="e.g., 24.5"
-                      disabled={isSubmitting}
+                      value={formData.bmi || "Enter weight & height"}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed text-gray-600"
+                      placeholder="Auto-calculated from weight & height"
+                      disabled
                     />
                   </div>
 
@@ -434,8 +468,8 @@ const AddRecipient = () => {
                   </div>
                 </div>
 
-                {/* Dialysis Years and Previous Transplants */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Dialysis Years, PRA, and Previous Transplants */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                   <div>
                     <label htmlFor="dialysisYears" className="block text-sm font-medium text-gray-700 mb-2">
                       Dialysis Years
@@ -450,6 +484,25 @@ const AddRecipient = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                       placeholder="e.g., 3.5"
                       min="0"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="pra" className="block text-sm font-medium text-gray-700 mb-2">
+                      PRA (%) <span className="text-xs text-gray-500">Panel Reactive Antibody</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      id="pra"
+                      name="pra"
+                      value={formData.pra}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                      placeholder="e.g., 15.5"
+                      min="0"
+                      max="100"
                       disabled={isSubmitting}
                     />
                   </div>
