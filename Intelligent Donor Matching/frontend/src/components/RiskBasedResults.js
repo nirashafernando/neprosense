@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Trophy, Heart, AlertTriangle, Info, ChevronDown, ChevronUp } from "lucide-react";
+import MedicalTooltip from "./MedicalTooltip";
 
 const RiskBasedResults = ({ result, onRunAnother }) => {
     const [expandedDonor, setExpandedDonor] = useState(null);
@@ -181,24 +182,51 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
                                         <div className="bg-white rounded-lg border border-gray-200 p-4">
                                             <div className="flex items-center space-x-2 mb-3">
                                                 <Info className="w-5 h-5 text-blue-500" />
-                                                <h5 className="font-semibold text-gray-900">AI Explanation - Top Contributing Factors</h5>
+                                                <h5 className="font-semibold text-gray-900">
+                                                    <MedicalTooltip term="SHAP">
+                                                        AI Explanation - Top Contributing Factors
+                                                    </MedicalTooltip>
+                                                </h5>
                                             </div>
 
                                             <div className="space-y-2">
-                                                {pred.shapExplanation.map((exp, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                                                        <div className="flex-1">
-                                                            <span className="text-sm font-medium text-gray-700">{exp.feature}</span>
-                                                            <p className="text-xs text-gray-500 mt-1">{exp.description}</p>
+                                                {pred.shapExplanation.map((exp, idx) => {
+                                                    // Map feature names to tooltip terms
+                                                    const featureTooltipMap = {
+                                                        'HLA Match Score': 'HLA',
+                                                        'eGFR Level': 'eGFR',
+                                                        'BMI': 'BMI',
+                                                        'PRA Level': 'PRA',
+                                                        'Blood Group Compatibility': 'Blood Compatibility',
+                                                        'Donor Age': 'Age',
+                                                        'Recipient Age': 'Age'
+                                                    };
+                                                    
+                                                    const tooltipTerm = featureTooltipMap[exp.feature];
+                                                    
+                                                    return (
+                                                        <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                                                            <div className="flex-1">
+                                                                {tooltipTerm ? (
+                                                                    <MedicalTooltip term={tooltipTerm}>
+                                                                        <span className="text-sm font-medium text-gray-700 cursor-help border-b border-dotted border-gray-400">
+                                                                            {exp.feature}
+                                                                        </span>
+                                                                    </MedicalTooltip>
+                                                                ) : (
+                                                                    <span className="text-sm font-medium text-gray-700">{exp.feature}</span>
+                                                                )}
+                                                                <p className="text-xs text-gray-500 mt-1">{exp.description}</p>
+                                                            </div>
+                                                            <div className={`ml-4 px-3 py-1 rounded text-xs font-semibold ${exp.importance > 0
+                                                                    ? "bg-green-100 text-green-700"
+                                                                    : "bg-red-100 text-red-700"
+                                                                }`}>
+                                                                {exp.importance > 0 ? "↑" : "↓"} {Math.abs(exp.importance).toFixed(3)}
+                                                            </div>
                                                         </div>
-                                                        <div className={`ml-4 px-3 py-1 rounded text-xs font-semibold ${exp.importance > 0
-                                                                ? "bg-green-100 text-green-700"
-                                                                : "bg-red-100 text-red-700"
-                                                            }`}>
-                                                            {exp.importance > 0 ? "↑" : "↓"} {Math.abs(exp.importance).toFixed(3)}
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </div>
