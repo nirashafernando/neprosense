@@ -225,6 +225,7 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                                         icon={<Heart className="w-4 h-4" />}
                                                         values={data.topDonors.map(d => d.parameters.bloodGroup)}
                                                         recipient={data.recipient.bloodGroup}
+                                                        compatibilityData={data.topDonors.map(d => d.parameters.bloodGroupCompatible)}
                                                         bestIndex={0}
                                                     />
 
@@ -362,68 +363,99 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
     );
 };
 
-// Helper component for comparison rows
-const ComparisonRow = ({ label, icon, values, recipient, bestIndex = -1 }) => {
+// Helper component for comparison rows with enhanced clinical evaluation
+const ComparisonRow = ({ label, icon, values, recipient, bestIndex = -1, compatibilityData = [] }) => {
+    /**
+     * Enhanced clinical indicator logic
+     * Returns appropriate indicator based on medical guidelines and data sensitivity
+     * - ✓ (Green): Optimal range - ideal for transplantation
+     * - ▲ (Amber): Acceptable range - requires monitoring but viable
+     * - ▼ (Red): Requires attention - significant concern or barrier
+     */
     const getIndicator = (index, value) => {
-        // For #1 ranked donor (index 0), never show red concern indicator
-        // ML has already determined this is the best match despite any borderline parameters
-        const isTopMatch = index === 0;
-        
-        // Clinical evaluation based on parameter type
         switch (label) {
             case 'HLA Match':
+                // HLA matching is THE MOST CRITICAL FACTOR for long-term success
                 const hlaScore = parseInt(value.split('/')[0]);
-                if (hlaScore >= 5) return <span className="text-green-600 font-bold">✓</span>; // Excellent
-                if (hlaScore >= 3) return <span className="text-yellow-600 font-bold">▲</span>; // Acceptable
-                // Top match: show acceptable instead of concern
-                return isTopMatch ? <span className="text-yellow-600 font-bold">▲</span> : <span className="text-red-600 font-bold">▼</span>;
+                if (hlaScore === 6) return <span className="text-green-600 font-bold" title="Perfect HLA match - Excellent long-term prognosis">✓</span>;
+                if (hlaScore === 5) return <span className="text-green-600 font-bold" title="Excellent HLA match - Very good compatibility">✓</span>;
+                if (hlaScore === 4) return <span className="text-yellow-600 font-bold" title="Good HLA match - Acceptable with monitoring">▲</span>;
+                if (hlaScore === 3) return <span className="text-yellow-600 font-bold" title="Fair HLA match - Increased immunosuppression needed">▲</span>;
+                if (hlaScore === 2) return <span className="text-orange-600 font-bold" title="Poor HLA match - High rejection risk">▼</span>;
+                return <span className="text-red-600 font-bold" title="Very poor HLA match - Critical rejection risk">▼</span>;
 
             case 'eGFR':
+                // Kidney function - Critical for immediate post-transplant success
                 const gfr = parseInt(value);
-                if (gfr >= 90) return <span className="text-green-600 font-bold">✓</span>; // Excellent
-                if (gfr >= 60) return <span className="text-yellow-600 font-bold">▲</span>; // Acceptable
-                // Top match: show acceptable instead of concern
-                return isTopMatch ? <span className="text-yellow-600 font-bold">▲</span> : <span className="text-red-600 font-bold">▼</span>;
+                if (gfr >= 100) return <span className="text-green-600 font-bold" title="Excellent kidney function">✓</span>;
+                if (gfr >= 90) return <span className="text-green-600 font-bold" title="Very good kidney function">✓</span>;
+                if (gfr >= 75) return <span className="text-yellow-600 font-bold" title="Good kidney function - acceptable">▲</span>;
+                if (gfr >= 60) return <span className="text-yellow-600 font-bold" title="Adequate kidney function - close monitoring needed">▲</span>;
+                if (gfr >= 45) return <span className="text-orange-600 font-bold" title="Borderline kidney function - significant concern">▼</span>;
+                return <span className="text-red-600 font-bold" title="Poor kidney function - high risk">▼</span>;
 
             case 'BMI':
+                // BMI affects surgical outcomes and post-transplant complications
                 const bmi = parseFloat(value);
-                if (bmi >= 18.5 && bmi <= 25) return <span className="text-green-600 font-bold">✓</span>; // Optimal
-                if (bmi >= 17 && bmi <= 30) return <span className="text-yellow-600 font-bold">▲</span>; // Acceptable
-                // Top match: show acceptable instead of concern
-                return isTopMatch ? <span className="text-yellow-600 font-bold">▲</span> : <span className="text-red-600 font-bold">▼</span>;
+                if (bmi >= 18.5 && bmi <= 24.9) return <span className="text-green-600 font-bold" title="Optimal BMI - ideal for surgery">✓</span>;
+                if (bmi >= 17 && bmi < 18.5) return <span className="text-yellow-600 font-bold" title="Slightly underweight - acceptable">▲</span>;
+                if (bmi >= 25 && bmi <= 27.5) return <span className="text-yellow-600 font-bold" title="Slightly overweight - manageable">▲</span>;
+                if (bmi >= 27.5 && bmi <= 30) return <span className="text-orange-600 font-bold" title="Overweight - increased surgical risk">▼</span>;
+                if (bmi > 30 && bmi <= 35) return <span className="text-orange-600 font-bold" title="Obese - significant surgical concerns">▼</span>;
+                return <span className="text-red-600 font-bold" title="Extreme BMI - high surgical risk">▼</span>;
 
             case 'Age':
+                // Age affects both immediate and long-term outcomes
                 const age = parseInt(value);
-                if (age < 40) return <span className="text-green-600 font-bold">✓</span>; // Young donor
-                if (age < 55) return <span className="text-yellow-600 font-bold">▲</span>; // Acceptable
-                // Top match: show acceptable instead of concern for older donors
-                return isTopMatch ? <span className="text-yellow-600 font-bold">▲</span> : <span className="text-red-600 font-bold">▼</span>;
+                if (age >= 18 && age <= 35) return <span className="text-green-600 font-bold" title="Young donor - optimal recovery potential">✓</span>;
+                if (age > 35 && age <= 45) return <span className="text-green-600 font-bold" title="Good age - excellent outcomes expected">✓</span>;
+                if (age > 45 && age <= 55) return <span className="text-yellow-600 font-bold" title="Acceptable age - good with monitoring">▲</span>;
+                if (age > 55 && age <= 65) return <span className="text-yellow-600 font-bold" title="Older donor - increased monitoring required">▲</span>;
+                if (age > 65 && age <= 70) return <span className="text-orange-600 font-bold" title="Elderly donor - careful evaluation needed">▼</span>;
+                return <span className="text-red-600 font-bold" title="Advanced age - significant concerns">▼</span>;
 
             case 'Health Status':
-                if (value === 'Healthy') return <span className="text-green-600 font-bold">✓</span>;
-                // For top match, multiple issues still acceptable per ML
-                if (value.includes('DM') && value.includes('HTN')) {
-                    return isTopMatch ? <span className="text-yellow-600 font-bold">▲</span> : <span className="text-red-600 font-bold">▼</span>;
+                // Comorbidities affect organ quality and recipient complications
+                if (value === 'Healthy') return <span className="text-green-600 font-bold" title="No comorbidities - optimal health">✓</span>;
+                
+                // Count comorbidities
+                const hasDiabetes = value.includes('DM');
+                const hasHypertension = value.includes('HTN');
+                const isSmoker = value.includes('Smoker');
+                const comorbidityCount = [hasDiabetes, hasHypertension, isSmoker].filter(Boolean).length;
+                
+                if (comorbidityCount === 1) {
+                    if (isSmoker) return <span className="text-yellow-600 font-bold" title="Smoking history - manageable risk">▲</span>;
+                    if (hasHypertension) return <span className="text-yellow-600 font-bold" title="Controlled hypertension - acceptable with monitoring">▲</span>;
+                    if (hasDiabetes) return <span className="text-orange-600 font-bold" title="Diabetes - requires careful evaluation">▼</span>;
                 }
-                if (value.includes('DM') || value.includes('HTN') || value.includes('Smoker')) {
-                    return <span className="text-yellow-600 font-bold">▲</span>; // Single issue
+                
+                if (comorbidityCount === 2) {
+                    if (hasDiabetes && hasHypertension) return <span className="text-orange-600 font-bold" title="Multiple metabolic conditions - significant concern">▼</span>;
+                    return <span className="text-orange-600 font-bold" title="Multiple comorbidities - increased risk">▼</span>;
                 }
-                return <span className="text-green-600 font-bold">✓</span>;
+                
+                if (comorbidityCount >= 3) return <span className="text-red-600 font-bold" title="Multiple serious comorbidities - high risk">▼</span>;
+                
+                return <span className="text-green-600 font-bold" title="Healthy">✓</span>;
 
             case 'Blood Group':
-                // Blood group compatibility is binary - either compatible or not
-                // If this row is shown, it's already compatible
-                return <span className="text-green-600 font-bold">✓</span>;
+                // Blood compatibility is ABSOLUTE - no compromise possible
+                const isCompatible = compatibilityData[index];
+                if (isCompatible === true) return <span className="text-green-600 font-bold" title="Blood type compatible - Safe for transplant">✓</span>;
+                if (isCompatible === false) return <span className="text-red-600 font-bold text-lg" title="Blood type INCOMPATIBLE - Transplant not possible">✗</span>;
+                // Fallback for undefined/missing data
+                return <span className="text-gray-400" title="Compatibility data unavailable">—</span>;
 
             default:
-                // Fallback to relative comparison
+                // Fallback for unknown parameters - use relative comparison
                 if (bestIndex === index) return <span className="text-green-600 font-bold">✓</span>;
                 return <span className="text-gray-400">—</span>;
         }
     };
 
     return (
-        <tr className="hover:bg-gray-50">
+        <tr className="hover:bg-gray-50 transition-colors">
             <td className="px-4 py-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                     {icon}
@@ -435,7 +467,7 @@ const ComparisonRow = ({ label, icon, values, recipient, bestIndex = -1 }) => {
                 <td key={idx} className="px-4 py-3 text-center">
                     <div className="flex flex-col items-center gap-1">
                         {getIndicator(idx, value)}
-                        <span className="text-sm text-gray-900">{value}</span>
+                        <span className="text-sm text-gray-900 font-medium">{value}</span>
                     </div>
                 </td>
             ))}

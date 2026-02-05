@@ -12,6 +12,7 @@ const AddDonor = () => {
     donorId: "",
     name: "",
     weight: "",
+    height: "",
     age: "",
     location: "",
     gender: "",
@@ -30,10 +31,21 @@ const AddDonor = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [name]: type === "checkbox" ? checked : value,
-    }));
+    };
+    
+    // Auto-calculate BMI when weight or height changes
+    if ((name === "weight" || name === "height") && newFormData.weight && newFormData.height) {
+      const weightKg = parseFloat(newFormData.weight);
+      const heightM = parseFloat(newFormData.height) / 100; // convert cm to meters
+      if (weightKg > 0 && heightM > 0) {
+        newFormData.bmi = (weightKg / (heightM * heightM)).toFixed(1);
+      }
+    }
+    
+    setFormData(newFormData);
     setError(""); // Clear error on change
   };
 
@@ -64,6 +76,7 @@ const AddDonor = () => {
           donorId: "",
           name: "",
           weight: "",
+          height: "",
           age: "",
           location: "",
           gender: "",
@@ -168,8 +181,8 @@ const AddDonor = () => {
                 </div>
               </div>
 
-              {/* Row 2: Weight and Age */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Row 2: Weight, Height, and Age */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label
                     htmlFor="weight"
@@ -179,13 +192,37 @@ const AddDonor = () => {
                   </label>
                   <input
                     type="number"
+                    step="0.1"
                     id="weight"
                     name="weight"
                     value={formData.weight}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                    placeholder="Enter weight in kg"
+                    placeholder="e.g., 70.5"
                     min="1"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="height"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Height (cm)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    id="height"
+                    name="height"
+                    value={formData.height}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    placeholder="e.g., 175"
+                    min="100"
+                    max="250"
                     required
                     disabled={isSubmitting}
                   />
@@ -318,18 +355,17 @@ const AddDonor = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label htmlFor="bmi" className="block text-sm font-medium text-gray-700 mb-2">
-                      BMI (kg/m²)
+                      BMI (kg/m²) <span className="text-xs text-gray-500">Auto-calculated</span>
                     </label>
                     <input
-                      type="number"
-                      step="0.1"
+                      type="text"
                       id="bmi"
                       name="bmi"
-                      value={formData.bmi}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                      placeholder="e.g., 24.5"
-                      disabled={isSubmitting}
+                      value={formData.bmi || "Enter weight & height"}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed text-gray-600"
+                      placeholder="Auto-calculated from weight & height"
+                      disabled
                     />
                   </div>
 
