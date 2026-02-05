@@ -274,7 +274,7 @@ const Dashboard = () => {
     recipient.bloodGroup?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const isClinician = user?.role === 'Clinician';
+  const isClinician = user?.role === 'Doctor';
   // Pagination calculations
   const getDonorPagination = () => {
     const startIndex = (donorPage - 1) * itemsPerPage;

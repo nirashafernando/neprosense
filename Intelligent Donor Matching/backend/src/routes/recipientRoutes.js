@@ -17,11 +17,11 @@ router.use(protect);
 // Statistics (all authenticated users)
 router.get('/stats/summary', getRecipientStats);
 
-// CRUD operations (Clinician only for create/update/delete)
-router.post('/', authorize('Clinician'), createRecipient);
+// CRUD operations (Doctor only for create/update/delete)
+router.post('/', authorize('Doctor'), createRecipient);
 router.get('/', getAllRecipients);
 router.get('/:id', getRecipientById);
-router.put('/:id', authorize('Clinician'), updateRecipient);
-router.delete('/:id', authorize('Clinician'), deleteRecipient);
+router.put('/:id', authorize('Doctor'), updateRecipient);
+router.delete('/:id', authorize('Doctor'), deleteRecipient);
 
 export default router;

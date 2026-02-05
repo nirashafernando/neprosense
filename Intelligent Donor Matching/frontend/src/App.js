@@ -58,7 +58,7 @@ function App() {
               <Route path="reports" element={<Reports />} />
               <Route path="admin-profile" element={<AdminProfile />} />
 
-              {/* Clinician-only routes */}
+              {/* Doctor-only routes */}
               <Route
                 path="donor"
                 element={

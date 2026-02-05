@@ -11,7 +11,7 @@ const RegisterPage = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'Clinician'
+        role: 'Doctor'
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);

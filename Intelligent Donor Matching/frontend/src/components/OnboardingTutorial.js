@@ -5,7 +5,7 @@ import { X, ChevronRight, ChevronLeft, Check, Users, Activity, FileText, BarChar
  * Onboarding Tutorial Component
  * First-time user walkthrough with interactive steps
  */
-const OnboardingTutorial = ({ onComplete, userRole = 'Clinician' }) => {
+const OnboardingTutorial = ({ onComplete, userRole = 'Doctor' }) => {
     const [currentStep, setCurrentStep] = useState(0);
     const [isVisible, setIsVisible] = useState(false);
 
@@ -18,7 +18,7 @@ const OnboardingTutorial = ({ onComplete, userRole = 'Clinician' }) => {
     }, []);
 
     const tutorialSteps = {
-        Clinician: [
+        Doctor: [
             {
                 title: 'Welcome to NeproSense',
                 description: 'This intelligent system helps you find the best kidney donor matches using AI-powered analysis. Let\'s take a quick tour.',
@@ -64,7 +64,7 @@ const OnboardingTutorial = ({ onComplete, userRole = 'Clinician' }) => {
         ]
     };
 
-    const steps = tutorialSteps[userRole] || tutorialSteps.Clinician;
+    const steps = tutorialSteps[userRole] || tutorialSteps.Doctor;
 
     const handleNext = () => {
         if (currentStep < steps.length - 1) {
