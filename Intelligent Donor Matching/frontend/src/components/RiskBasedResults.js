@@ -192,8 +192,8 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
                                                             <p className="text-xs text-gray-500 mt-1">{exp.description}</p>
                                                         </div>
                                                         <div className={`ml-4 px-3 py-1 rounded text-xs font-semibold ${exp.importance > 0
-                                                                ? "bg-red-100 text-red-700"
-                                                                : "bg-green-100 text-green-700"
+                                                                ? "bg-green-100 text-green-700"
+                                                                : "bg-red-100 text-red-700"
                                                             }`}>
                                                             {exp.importance > 0 ? "↑" : "↓"} {Math.abs(exp.importance).toFixed(3)}
                                                         </div>
