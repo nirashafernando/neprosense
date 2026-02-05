@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HelpCircle, Info } from 'lucide-react';
 
 /**
@@ -7,6 +7,44 @@ import { HelpCircle, Info } from 'lucide-react';
  */
 const MedicalTooltip = ({ term, children, position = 'top' }) => {
     const [isVisible, setIsVisible] = useState(false);
+    const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+    const triggerRef = useRef(null);
+
+    useEffect(() => {
+        if (isVisible && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            const scrollY = window.scrollY || window.pageYOffset;
+            const scrollX = window.scrollX || window.pageXOffset;
+
+            let top = 0;
+            let left = 0;
+
+            // Calculate position based on prop
+            switch (position) {
+                case 'top':
+                    top = rect.top + scrollY - 10; // Position above, with offset
+                    left = rect.left + scrollX + rect.width / 2;
+                    break;
+                case 'bottom':
+                    top = rect.bottom + scrollY + 10;
+                    left = rect.left + scrollX + rect.width / 2;
+                    break;
+                case 'left':
+                    top = rect.top + scrollY + rect.height / 2;
+                    left = rect.left + scrollX - 10;
+                    break;
+                case 'right':
+                    top = rect.top + scrollY + rect.height / 2;
+                    left = rect.right + scrollX + 10;
+                    break;
+                default:
+                    top = rect.top + scrollY - 10;
+                    left = rect.left + scrollX + rect.width / 2;
+            }
+
+            setTooltipPosition({ top, left });
+        }
+    }, [isVisible, position]);
 
     const medicalTerms = {
         'HLA': {
@@ -44,6 +82,11 @@ const MedicalTooltip = ({ term, children, position = 'top' }) => {
             description: 'Donor and recipient blood types must be compatible. O is universal donor, AB is universal recipient.',
             importance: 'Absolute Requirement'
         },
+        'Blood Group': {
+            title: 'ABO Blood Group',
+            description: 'Blood type classification (A, B, AB, O with +/-). Must be compatible between donor and recipient for safe transplantation.',
+            importance: 'Absolute Requirement'
+        },
         'Immunosuppression': {
             title: 'Immunosuppressive Therapy',
             description: 'Medications that suppress immune system to prevent rejection. Required lifelong after transplant.',
@@ -63,6 +106,16 @@ const MedicalTooltip = ({ term, children, position = 'top' }) => {
             title: 'High Blood Pressure',
             description: 'Chronic elevated blood pressure. Can damage kidneys over time and affect transplant outcomes.',
             importance: 'Risk Factor'
+        },
+        'Comorbidities': {
+            title: 'Health Comorbidities',
+            description: 'Pre-existing health conditions (diabetes, hypertension, smoking) that may affect surgical outcomes and long-term transplant success.',
+            importance: 'Risk Factor'
+        },
+        'Age': {
+            title: 'Donor/Recipient Age',
+            description: 'Younger donors (18-40 years) are generally associated with better long-term transplant outcomes and graft survival.',
+            importance: 'Very Important'
         }
     };
 
@@ -91,8 +144,9 @@ const MedicalTooltip = ({ term, children, position = 'top' }) => {
     };
 
     return (
-        <div className="relative inline-block">
+        <div className="relative inline-block" style={{ display: 'inline' }}>
             <span
+                ref={triggerRef}
                 className="inline-flex items-center gap-1 cursor-help border-b border-dotted border-medical-400 text-medical-600"
                 onMouseEnter={() => setIsVisible(true)}
                 onMouseLeave={() => setIsVisible(false)}
@@ -103,47 +157,53 @@ const MedicalTooltip = ({ term, children, position = 'top' }) => {
             </span>
 
             {isVisible && (
-                <div
-                    className={`absolute ${positionClasses[position]} z-50 w-80 animate-fadeIn`}
-                    style={{ animation: 'fadeIn 0.2s ease-in-out' }}
-                >
-                    <div className="bg-white rounded-lg shadow-2xl border-2 border-medical-200 overflow-hidden">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-medical-600 to-teal-600 px-4 py-3 text-white">
-                            <div className="flex items-start gap-2">
-                                <Info className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                                <div>
-                                    <h4 className="font-bold text-sm leading-tight">{tooltipData.title}</h4>
+                <>
+                    <div
+                        className="fixed inset-0 z-[9998]"
+                        style={{ pointerEvents: 'none' }}
+                    />
+                    <div
+                        className="fixed z-[9999] w-56 animate-fadeIn"
+                        style={{
+                            top: `${tooltipPosition.top}px`,
+                            left: `${tooltipPosition.left}px`,
+                            transform: position === 'top' || position === 'bottom' 
+                                ? 'translateX(-50%) translateY(-100%)' 
+                                : position === 'left' 
+                                    ? 'translateX(-100%) translateY(-50%)' 
+                                    : 'translateY(-50%)',
+                            animation: 'fadeIn 0.2s ease-in-out',
+                            pointerEvents: 'auto'
+                        }}
+                    >
+                        <div className="bg-white rounded-lg shadow-2xl border-2 border-medical-200 overflow-hidden">
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-medical-600 to-teal-600 px-3 py-2 text-white">
+                                <div className="flex items-start gap-2">
+                                    <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <h4 className="font-bold text-xs leading-tight">{tooltipData.title}</h4>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Body */}
+                            <div className="px-3 py-2">
+                                <p className="text-xs text-gray-700 leading-relaxed mb-2">
+                                    {tooltipData.description}
+                                </p>
+
+                                {/* Importance Badge */}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-gray-500 font-medium">Clinical Importance:</span>
+                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${importanceColors[tooltipData.importance]}`}>
+                                        {tooltipData.importance}
+                                    </span>
                                 </div>
                             </div>
                         </div>
-
-                        {/* Body */}
-                        <div className="px-4 py-3">
-                            <p className="text-sm text-gray-700 leading-relaxed mb-3">
-                                {tooltipData.description}
-                            </p>
-
-                            {/* Importance Badge */}
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs text-gray-500 font-medium">Clinical Importance:</span>
-                                <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${importanceColors[tooltipData.importance]}`}>
-                                    {tooltipData.importance}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Arrow */}
-                        <div
-                            className={`absolute w-3 h-3 bg-white border-2 border-medical-200 transform rotate-45 ${
-                                position === 'top' ? 'top-full left-1/2 -translate-x-1/2 -translate-y-1/2' :
-                                position === 'bottom' ? 'bottom-full left-1/2 -translate-x-1/2 translate-y-1/2' :
-                                position === 'left' ? 'left-full top-1/2 -translate-x-1/2 -translate-y-1/2' :
-                                'right-full top-1/2 translate-x-1/2 -translate-y-1/2'
-                            }`}
-                        />
                     </div>
-                </div>
+                </>
             )}
 
             <style jsx>{`
