@@ -41,28 +41,33 @@ const DashboardStats = () => {
                     predDate.getFullYear() === now.getFullYear();
             });
 
-            // Calculate average match score
+            // Calculate average match score from all predictions
             let totalScore = 0;
             let scoreCount = 0;
             predictionData.forEach(pred => {
-                if (pred.topDonors && pred.topDonors.length > 0) {
-                    totalScore += pred.topDonors[0].matchScore || 0;
-                    scoreCount++;
+                if (pred.predictions && pred.predictions.length > 0) {
+                    // Sum all probabilities in this prediction batch
+                    pred.predictions.forEach(p => {
+                        totalScore += (p.probability * 100) || 0; // Convert to percentage
+                        scoreCount++;
+                    });
                 }
             });
             const avgScore = scoreCount > 0 ? (totalScore / scoreCount).toFixed(1) : 0;
 
-            // Count risk categories with case-insensitive matching
+            // Count risk categories from all predictions (not just top donors)
             let lowRisk = 0, mediumRisk = 0, highRisk = 0;
             predictionData.forEach(pred => {
-                if (pred.topDonors && pred.topDonors.length > 0) {
-                    const category = pred.topDonors[0].riskCategory?.category;
-                    if (category) {
-                        const categoryLower = category.toLowerCase();
-                        if (categoryLower.includes('low')) lowRisk++;
-                        else if (categoryLower.includes('medium')) mediumRisk++;
-                        else if (categoryLower.includes('high')) highRisk++;
-                    }
+                if (pred.predictions && pred.predictions.length > 0) {
+                    pred.predictions.forEach(p => {
+                        const category = p.riskCategory?.category;
+                        if (category) {
+                            const categoryLower = category.toLowerCase();
+                            if (categoryLower.includes('low')) lowRisk++;
+                            else if (categoryLower.includes('medium')) mediumRisk++;
+                            else if (categoryLower.includes('high')) highRisk++;
+                        }
+                    });
                 }
             });
 
