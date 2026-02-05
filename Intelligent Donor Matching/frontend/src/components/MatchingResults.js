@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Heart, Search, Eye, Calendar, Clock } from "lucide-react";
 import api from "../lib/axios";
 import MatchDetailsModal from "./MatchDetailsModal";
+import { useToast } from "./Toast";
 
 const MatchingResults = ({ onViewDetails }) => {
+  const { showSuccess, showError, showInfo, ToastComponent } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [matchingData, setMatchingData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +64,9 @@ const MatchingResults = ({ onViewDetails }) => {
         // Set more specific error message
         const errorMessage = err.response?.data?.message || err.message || "Failed to fetch matching results";
         setError(errorMessage);
+        showError(errorMessage, {
+          action: { label: "Retry", onClick: () => window.location.reload() }
+        });
         setLoading(false);
         // Fallback to empty array if error
         setMatchingData([]);
@@ -339,6 +344,9 @@ const MatchingResults = ({ onViewDetails }) => {
         onClose={closeModal}
         predictionId={selectedPredictionId}
       />
+
+      {/* Toast Notifications */}
+      {ToastComponent}
     </div>
   );
 };

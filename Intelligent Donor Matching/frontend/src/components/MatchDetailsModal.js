@@ -3,6 +3,23 @@ import { X, Award, TrendingUp, Activity, Users, CheckCircle, AlertTriangle, Down
 import api from '../lib/axios';
 import MatchParameterExplanation from './MatchParameterExplanation';
 
+// Helper function to check blood group compatibility
+const isBloodGroupCompatible = (donorBloodGroup, recipientBloodGroup) => {
+    const compatibilityMap = {
+        'O-': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'], // Universal donor
+        'O+': ['O+', 'A+', 'B+', 'AB+'],
+        'A-': ['A-', 'A+', 'AB-', 'AB+'],
+        'A+': ['A+', 'AB+'],
+        'B-': ['B-', 'B+', 'AB-', 'AB+'],
+        'B+': ['B+', 'AB+'],
+        'AB-': ['AB-', 'AB+'],
+        'AB+': ['AB+'] // Universal recipient
+    };
+    
+    const compatibleRecipients = compatibilityMap[donorBloodGroup] || [];
+    return compatibleRecipients.includes(recipientBloodGroup);
+};
+
 const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -38,7 +55,22 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                 console.log('========================');
                 // ===== END DEBUG =====
 
-                setData(response.data.data);
+                // Recalculate blood compatibility on frontend to ensure correctness
+                const dataWithCorrectCompatibility = {
+                    ...response.data.data,
+                    topDonors: response.data.data.topDonors.map(donor => ({
+                        ...donor,
+                        parameters: {
+                            ...donor.parameters,
+                            bloodGroupCompatible: isBloodGroupCompatible(
+                                donor.parameters.bloodGroup,
+                                response.data.data.recipient.bloodGroup
+                            )
+                        }
+                    }))
+                };
+
+                setData(dataWithCorrectCompatibility);
             }
             setLoading(false);
         } catch (err) {
