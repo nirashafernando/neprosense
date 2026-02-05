@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Check, Lightbulb } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Check } from 'lucide-react';
 
 /**
  * Onboarding Tutorial Component
@@ -20,39 +20,33 @@ const OnboardingTutorial = ({ onComplete, userRole = 'Clinician' }) => {
     const tutorialSteps = {
         Clinician: [
             {
-                title: 'Welcome to NeproSense!',
+                title: 'Welcome to NeproSense',
                 description: 'This intelligent system helps you find the best kidney donor matches using AI-powered analysis. Let\'s take a quick tour.',
-                icon: '🎯',
                 highlight: null
             },
             {
                 title: 'Add Donors & Recipients',
                 description: 'Start by adding donor and recipient profiles. Click "Donor" or "Recipient" in the sidebar to add medical records including HLA typing, blood group, and health data.',
-                icon: '👥',
                 highlight: 'sidebar'
             },
             {
                 title: 'Make Predictions',
                 description: 'Once you have profiles, click "Make Prediction" to run AI analysis. Select a recipient and donors to evaluate compatibility scores and risk categories.',
-                icon: '🔬',
                 highlight: 'prediction'
             },
             {
                 title: 'Understanding Results',
                 description: 'Results show compatibility percentage, risk level (Low/Medium/High), and SHAP explanations showing which factors influenced the score.',
-                icon: '📊',
                 highlight: 'results'
             },
             {
                 title: 'Medical Terms Help',
                 description: 'Hover over any medical term with a dotted underline to see detailed explanations. HLA, eGFR, and other terms have built-in tooltips.',
-                icon: '❓',
                 highlight: null
             },
             {
                 title: 'View Reports',
                 description: 'Access all your prediction history in the "Reports" section. Download PDFs or view detailed comparisons of top donor matches.',
-                icon: '📄',
                 highlight: 'reports'
             }
         ]
@@ -104,14 +98,11 @@ const OnboardingTutorial = ({ onComplete, userRole = 'Clinician' }) => {
                 {/* Header */}
                 <div className="bg-gradient-to-r from-medical-600 to-teal-600 p-6 text-white">
                     <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                            <span className="text-5xl">{currentStepData.icon}</span>
-                            <div>
-                                <h2 className="text-2xl font-bold mb-1">{currentStepData.title}</h2>
-                                <p className="text-medical-100 text-sm">
-                                    Step {currentStep + 1} of {steps.length}
-                                </p>
-                            </div>
+                        <div>
+                            <h2 className="text-xl font-semibold mb-1">{currentStepData.title}</h2>
+                            <p className="text-medical-100 text-sm">
+                                Step {currentStep + 1} of {steps.length}
+                            </p>
                         </div>
                         <button
                             onClick={skipTutorial}
@@ -124,25 +115,22 @@ const OnboardingTutorial = ({ onComplete, userRole = 'Clinician' }) => {
 
                 {/* Content */}
                 <div className="p-8">
-                    <p className="text-gray-700 text-lg leading-relaxed mb-6">
+                    <p className="text-gray-700 text-base leading-relaxed mb-6">
                         {currentStepData.description}
                     </p>
 
                     {/* Tips Section */}
                     <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
-                        <div className="flex items-start gap-3">
-                            <Lightbulb className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                            <div>
-                                <h4 className="font-semibold text-blue-900 mb-1">Pro Tip</h4>
-                                <p className="text-blue-800 text-sm">
-                                    {currentStep === 0 && 'You can restart this tutorial anytime from your profile settings.'}
-                                    {currentStep === 1 && 'Accurate HLA typing is crucial. Use format: A1,A2,B7,B8,DR3,DR4'}
-                                    {currentStep === 2 && 'You can compare multiple donors at once for comprehensive analysis.'}
-                                    {currentStep === 3 && 'Green SHAP values increase compatibility, red values decrease it.'}
-                                    {currentStep === 4 && 'Click on any medical term to learn more about its clinical importance.'}
-                                    {currentStep === 5 && 'PDF reports include all donor comparisons and explanations for patient records.'}
-                                </p>
-                            </div>
+                        <div>
+                            <h4 className="font-semibold text-blue-900 mb-1 text-sm">Pro Tip</h4>
+                            <p className="text-blue-800 text-sm">
+                                {currentStep === 0 && 'You can restart this tutorial anytime from your profile settings.'}
+                                {currentStep === 1 && 'Accurate HLA typing is crucial. Use format: A1,A2,B7,B8,DR3,DR4'}
+                                {currentStep === 2 && 'You can compare multiple donors at once for comprehensive analysis.'}
+                                {currentStep === 3 && 'Green SHAP values increase compatibility, red values decrease it.'}
+                                {currentStep === 4 && 'Click on any medical term to learn more about its clinical importance.'}
+                                {currentStep === 5 && 'PDF reports include all donor comparisons and explanations for patient records.'}
+                            </p>
                         </div>
                     </div>
 
