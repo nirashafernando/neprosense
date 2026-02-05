@@ -94,6 +94,13 @@ const recipientSchema = new mongoose.Schema({
         required: false,
         min: [0, 'Dialysis years cannot be negative']
     },
+    pra: {
+        type: Number,
+        required: false,
+        min: [0, 'PRA cannot be negative'],
+        max: [100, 'PRA must be between 0-100'],
+        default: 0
+    },
     diabetes: {
         type: Boolean,
         default: false

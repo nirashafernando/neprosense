@@ -236,6 +236,7 @@ export const predictBatch = async (req, res) => {
             systolicBP: recipient.systolicBP || 130,
             diastolicBP: recipient.diastolicBP || 85,
             dialysisYears: recipient.dialysisYears || 0,
+            pra: recipient.pra || 0,
             diabetes: recipient.diabetes || false,
             hypertension: recipient.hypertension || false,
             previousTransplants: recipient.previousTransplants || 0
@@ -408,10 +409,12 @@ export const getBatchPredictionDetails = async (req, res) => {
                     shapExplanation: pred.shapExplanation || [],
                     parameters: {
                         bloodGroup: donor?.bloodGroup || 'N/A',
+                        bloodGroupCompatible: pred.parameters?.bloodGroupCompatible ?? true, // From ML service
                         age: donor?.age || 0,
                         bmi: donor?.bmi || 0,
                         gfr: donor?.gfr || 0,
                         hlaMatchScore: pred.parameters?.hlaMatchScore || pred.hlaMatchScore || 0,  // Read from parameters object
+                        hlaMatchLevel: pred.parameters?.hlaMatchLevel || 'Unknown', // From ML service
                         diabetes: donor?.diabetes || false,
                         hypertension: donor?.hypertension || false,
                         smoking: donor?.smoking || false
