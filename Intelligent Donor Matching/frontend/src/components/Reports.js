@@ -176,7 +176,9 @@ const Reports = () => {
             <div>
               <p className="text-sm text-gray-600 font-medium">Low Risk</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.filter(r => r.riskCategory?.category?.toLowerCase().includes('low')).length}
+                {reports.reduce((count, r) => 
+                  count + (r.predictions?.filter(p => p.riskCategory?.category?.toLowerCase().includes('low')).length || 0), 0
+                )}
               </p>
             </div>
             <CheckCircle className="w-10 h-10 text-green-500" />
@@ -188,7 +190,9 @@ const Reports = () => {
             <div>
               <p className="text-sm text-gray-600 font-medium">Medium Risk</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.filter(r => r.riskCategory?.category?.toLowerCase().includes('medium')).length}
+                {reports.reduce((count, r) => 
+                  count + (r.predictions?.filter(p => p.riskCategory?.category?.toLowerCase().includes('medium')).length || 0), 0
+                )}
               </p>
             </div>
             <AlertCircle className="w-10 h-10 text-yellow-500" />
@@ -200,7 +204,9 @@ const Reports = () => {
             <div>
               <p className="text-sm text-gray-600 font-medium">High Risk</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {reports.filter(r => r.riskCategory?.category?.toLowerCase().includes('high')).length}
+                {reports.reduce((count, r) => 
+                  count + (r.predictions?.filter(p => p.riskCategory?.category?.toLowerCase().includes('high')).length || 0), 0
+                )}
               </p>
             </div>
             <AlertCircle className="w-10 h-10 text-red-500" />
