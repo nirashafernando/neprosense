@@ -8,7 +8,8 @@ import {
   ArrowRight,
   Edit,
   Trash2,
-  Search
+  Search,
+  PlayCircle
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/axios";
@@ -18,6 +19,9 @@ import { useToast } from "./Toast";
 import ConfirmDialog from "./ConfirmDialog";
 import OnboardingTutorial from "./OnboardingTutorial";
 import MedicalTooltip from "./MedicalTooltip";
+import EmptyState from "./EmptyState";
+import Pagination from "./Pagination";
+import StatusIndicator from "./StatusIndicator";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -40,6 +44,11 @@ const Dashboard = () => {
   const [predictions, setPredictions] = useState([]);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [donorPage, setDonorPage] = useState(1);
+  const [recipientPage, setRecipientPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [mlServiceStatus, setMlServiceStatus] = useState('connected');
+  const [dbStatus, setDbStatus] = useState('connected');
 
   useEffect(() => {
     fetchData();
@@ -50,6 +59,12 @@ const Dashboard = () => {
       setTimeout(() => setShowOnboarding(true), 500);
     }
   }, []);
+
+  const handleRestartTutorial = () => {
+    localStorage.removeItem('hasSeenOnboarding');
+    setShowOnboarding(true);
+    showSuccess('Tutorial restarted! Follow the steps to learn about the system.');
+  };
 
   const fetchData = async () => {
     try {
@@ -237,6 +252,25 @@ const Dashboard = () => {
   );
 
   const isClinician = user?.role === 'Clinician';
+  // Pagination calculations
+  const getDonorPagination = () => {
+    const startIndex = (donorPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedDonors = filteredDonors.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(filteredDonors.length / itemsPerPage);
+    return { paginatedDonors, totalPages };
+  };
+
+  const getRecipientPagination = () => {
+    const startIndex = (recipientPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedRecipients = filteredRecipients.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(filteredRecipients.length / itemsPerPage);
+    return { paginatedRecipients, totalPages };
+  };
+
+  const { paginatedDonors, totalPages: donorTotalPages } = getDonorPagination();
+  const { paginatedRecipients, totalPages: recipientTotalPages } = getRecipientPagination();
 
   return (
     <div className="p-6">
@@ -275,33 +309,42 @@ const Dashboard = () => {
 
         {/* Tab Navigation */}
         <div className="mb-6 border-b border-gray-200">
-          <div className="flex space-x-8">
+          <div className="flex justify-between items-end">
+            <div className="flex space-x-8">
+              <button
+                onClick={() => setActiveTab('overview')}
+                className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
+                  ? 'border-medical-600 text-medical-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveTab('donors')}
+                className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'donors'
+                  ? 'border-medical-600 text-medical-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                Donors ({donorCount})
+              </button>
+              <button
+                onClick={() => setActiveTab('recipients')}
+                className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'recipients'
+                  ? 'border-medical-600 text-medical-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                Recipients ({recipientCount})
+              </button>
+            </div>
             <button
-              onClick={() => setActiveTab('overview')}
-              className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
-                ? 'border-medical-600 text-medical-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+              onClick={handleRestartTutorial}
+              className="bg-medical-600 hover:bg-medical-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors mb-2"
             >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('donors')}
-              className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'donors'
-                ? 'border-medical-600 text-medical-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              Donors ({donorCount})
-            </button>
-            <button
-              onClick={() => setActiveTab('recipients')}
-              className={`pb-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'recipients'
-                ? 'border-medical-600 text-medical-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              Recipients ({recipientCount})
+              <PlayCircle className="w-4 h-4" />
+              <span className="text-sm font-medium">Restart Tutorial</span>
             </button>
           </div>
         </div>
@@ -515,7 +558,7 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredDonors.map((donor) => (
+                  {paginatedDonors.map((donor) => (
                     editingDonor === donor._id ? (
                       <tr key={donor._id} className="bg-blue-50">
                         <td className="px-4 py-4 text-sm font-medium text-gray-900">{donor.donorId}</td>
@@ -626,13 +669,26 @@ const Dashboard = () => {
                   ))}
                 </tbody>
               </table>
-              {filteredDonors.length === 0 && (
-                <div className="text-center py-12">
-                  <Heart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No donors found</p>
-                </div>
-              )}
             </div>
+
+            {/* Empty State */}
+            {filteredDonors.length === 0 && (
+              <EmptyState 
+                type={searchQuery ? "searchResults" : "donors"}
+                onAction={!searchQuery && isClinician ? () => navigate('/app/donor') : null}
+              />
+            )}
+
+            {/* Pagination */}
+            {filteredDonors.length > itemsPerPage && (
+              <Pagination
+                currentPage={donorPage}
+                totalPages={donorTotalPages}
+                totalItems={filteredDonors.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setDonorPage}
+              />
+            )}
           </div>
         )}
 
@@ -693,7 +749,7 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredRecipients.map((recipient) => (
+                  {paginatedRecipients.map((recipient) => (
                     editingRecipient === recipient._id ? (
                       <tr key={recipient._id} className="bg-blue-50">
                         <td className="px-4 py-4 text-sm font-medium text-gray-900">{recipient.recipientId}</td>
@@ -813,16 +869,48 @@ const Dashboard = () => {
                   ))}
                 </tbody>
               </table>
-              {filteredRecipients.length === 0 && (
-                <div className="text-center py-12">
-                  <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No recipients found</p>
-                </div>
-              )}
             </div>
+
+            {/* Empty State */}
+            {filteredRecipients.length === 0 && (
+              <EmptyState 
+                type={searchQuery ? "searchResults" : "recipients"}
+                onAction={!searchQuery && isClinician ? () => navigate('/app/recipient') : null}
+              />
+            )}
+
+            {/* Pagination */}
+            {filteredRecipients.length > itemsPerPage && (
+              <Pagination
+                currentPage={recipientPage}
+                totalPages={recipientTotalPages}
+                totalItems={filteredRecipients.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setRecipientPage}
+              />
+            )}
           </div>
         )}
+
+        {/* Status Indicator */}
+        <div className="fixed bottom-4 right-4 z-40">
+          <StatusIndicator 
+            mlServiceStatus={mlServiceStatus}
+            dbStatus={dbStatus}
+            isProcessing={loading}
+          />
+        </div>
       </div>
+      {ToastComponent}
+      {confirmDialog.isOpen && (
+        <ConfirmDialog {...confirmDialog} />
+      )}
+      {showOnboarding && (
+        <OnboardingTutorial 
+          onComplete={() => setShowOnboarding(false)}
+          userRole={user?.role}
+        />
+      )}
     </div>
   );
 };

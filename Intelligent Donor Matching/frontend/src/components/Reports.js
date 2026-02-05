@@ -18,6 +18,8 @@ import api from "../lib/axios";
 import MatchDetailsModal from "./MatchDetailsModal";
 import { useToast } from "./Toast";
 import ConfirmDialog from "./ConfirmDialog";
+import EmptyState from "./EmptyState";
+import Pagination from "./Pagination";
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -32,6 +34,8 @@ const Reports = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [downloading, setDownloading] = useState(null); // Track which report is downloading
   const [deleting, setDeleting] = useState(null); // Track which report is being deleted
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchReports();
@@ -158,6 +162,12 @@ const Reports = () => {
     return matchesSearch && report.status === filterStatus;
   });
 
+  // Pagination
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedReports = filteredReports.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -273,22 +283,13 @@ const Reports = () => {
             <p className="text-gray-600">Loading reports...</p>
           </div>
         ) : filteredReports.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
-            <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Reports Found</h3>
-            <p className="text-gray-600 mb-6">
-              {searchQuery ? "Try adjusting your search criteria" : "Start by making a prediction to generate reports"}
-            </p>
-            <button
-              onClick={() => navigate('/app/make-prediction')}
-              className="bg-medical-600 hover:bg-medical-700 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center gap-2"
-            >
-              <Heart className="w-5 h-5" />
-              Make a Prediction
-            </button>
-          </div>
+          <EmptyState 
+            type={searchQuery ? "searchResults" : "reports"}
+            onAction={() => navigate('/app/make-prediction')}
+          />
         ) : (
-          filteredReports.map((report, index) => (
+          <>
+            {paginatedReports.map((report, index) => (
             <div
               key={report._id || index}
               className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-6 border-l-4 border-medical-500"
@@ -399,7 +400,19 @@ const Reports = () => {
                 </div>
               </div>
             </div>
-          ))
+          ))}
+
+          {/* Pagination */}
+          {filteredReports.length > itemsPerPage && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredReports.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+            />
+          )}
+          </>
         )}
       </div>
 
