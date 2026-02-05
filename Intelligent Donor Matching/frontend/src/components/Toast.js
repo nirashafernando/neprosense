@@ -122,7 +122,7 @@ export const useToast = () => {
         setToasts(prev => prev.filter(toast => toast.id !== id));
     }, []);
 
-    const ToastComponent = React.useMemo(
+    const ToastComponent = React.useCallback(
         () => <ToastContainer toasts={toasts} removeToast={removeToast} />,
         [toasts, removeToast]
     );
