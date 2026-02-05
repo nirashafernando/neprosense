@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Award, TrendingUp, Activity, Users, CheckCircle, AlertTriangle, Download, Heart, Eye } from 'lucide-react';
 import api from '../lib/axios';
 import MatchParameterExplanation from './MatchParameterExplanation';
+import MedicalTooltip from './MedicalTooltip';
 
 // Helper function to check blood group compatibility
 const isBloodGroupCompatible = (donorBloodGroup, recipientBloodGroup) => {
@@ -491,7 +492,34 @@ const ComparisonRow = ({ label, icon, values, recipient, bestIndex = -1, compati
             <td className="px-4 py-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                     {icon}
-                    <span>{label}</span>
+                    {/* Map label to tooltip term */}
+                    {label === 'Blood Group' ? (
+                        <MedicalTooltip term="Blood Compatibility" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'Age' ? (
+                        <MedicalTooltip term="Age" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'HLA Match' ? (
+                        <MedicalTooltip term="HLA" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'eGFR' ? (
+                        <MedicalTooltip term="eGFR" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'BMI' ? (
+                        <MedicalTooltip term="BMI" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'Health Status' ? (
+                        <MedicalTooltip term="Comorbidities" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : (
+                        <span>{label}</span>
+                    )}
                     {recipient && <span className="text-xs text-gray-500">({recipient})</span>}
                 </div>
             </td>
