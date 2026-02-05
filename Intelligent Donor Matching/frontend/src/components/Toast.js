@@ -16,27 +16,27 @@ const Toast = ({ message, type = 'info', duration = 3000, onClose, action }) => 
     const types = {
         success: {
             icon: <CheckCircle className="w-5 h-5" />,
-            bgColor: 'bg-green-500',
-            borderColor: 'border-green-600',
-            textColor: 'text-white'
+            bgColor: 'bg-gradient-to-r from-emerald-50 to-teal-50',
+            borderColor: 'border-emerald-500',
+            textColor: 'text-emerald-900'
         },
         error: {
             icon: <XCircle className="w-5 h-5" />,
-            bgColor: 'bg-red-500',
-            borderColor: 'border-red-600',
-            textColor: 'text-white'
+            bgColor: 'bg-gradient-to-r from-rose-50 to-red-50',
+            borderColor: 'border-rose-500',
+            textColor: 'text-rose-900'
         },
         warning: {
             icon: <AlertTriangle className="w-5 h-5" />,
-            bgColor: 'bg-yellow-500',
-            borderColor: 'border-yellow-600',
-            textColor: 'text-white'
+            bgColor: 'bg-gradient-to-r from-amber-50 to-yellow-50',
+            borderColor: 'border-amber-500',
+            textColor: 'text-amber-900'
         },
         info: {
             icon: <Info className="w-5 h-5" />,
-            bgColor: 'bg-blue-500',
-            borderColor: 'border-blue-600',
-            textColor: 'text-white'
+            bgColor: 'bg-gradient-to-r from-blue-50 to-sky-50',
+            borderColor: 'border-blue-500',
+            textColor: 'text-blue-900'
         }
     };
 
@@ -44,9 +44,9 @@ const Toast = ({ message, type = 'info', duration = 3000, onClose, action }) => 
 
     return (
         <div
-            className={`${config.bgColor} ${config.textColor} ${config.borderColor} border-l-4 rounded-lg shadow-2xl p-4 min-w-80 max-w-md animate-slideIn flex items-start gap-3`}
+            className={`${config.bgColor} ${config.textColor} ${config.borderColor} border-l-4 rounded-xl shadow-xl border-2 p-4 min-w-80 max-w-md animate-slideIn flex items-start gap-3`}
         >
-            <div className="flex-shrink-0 mt-0.5">
+            <div className={`flex-shrink-0 mt-0.5 ${config.textColor}`}>
                 {config.icon}
             </div>
             <div className="flex-1">
@@ -62,7 +62,7 @@ const Toast = ({ message, type = 'info', duration = 3000, onClose, action }) => 
             </div>
             <button
                 onClick={onClose}
-                className="flex-shrink-0 hover:bg-white hover:bg-opacity-20 rounded-full p-1 transition-all"
+                className="flex-shrink-0 hover:bg-slate-200 hover:bg-opacity-50 rounded-full p-1 transition-all"
             >
                 <X className="w-4 h-4" />
             </button>

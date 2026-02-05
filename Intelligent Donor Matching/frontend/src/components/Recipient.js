@@ -590,7 +590,7 @@ const AddRecipient = () => {
           </form>
         </div>
       </div>
-      {ToastComponent}
+      <ToastComponent />
     </div>
   );
 };

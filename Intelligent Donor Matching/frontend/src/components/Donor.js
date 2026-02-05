@@ -518,7 +518,7 @@ const AddDonor = () => {
           </form>
         </div>
       </div>
-      {ToastComponent}
+      <ToastComponent />
     </div>
   );
 };

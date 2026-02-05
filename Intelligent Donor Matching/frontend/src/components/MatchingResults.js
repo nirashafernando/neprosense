@@ -100,25 +100,25 @@ const MatchingResults = ({ onViewDetails }) => {
   const getRiskColor = (risk) => {
     switch (risk.toLowerCase()) {
       case "suitable":
-        return "text-green-600 bg-green-50";
+        return "bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border-emerald-300";
       case "unsuitable":
-        return "text-red-600 bg-red-50";
+        return "bg-gradient-to-r from-rose-100 to-red-100 text-rose-800 border-rose-300";
       case "high":
-        return "text-red-600 bg-red-50";
+        return "bg-gradient-to-r from-rose-100 to-red-100 text-rose-800 border-rose-300";
       case "medium":
-        return "text-yellow-600 bg-yellow-50";
+        return "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border-amber-300";
       case "low":
-        return "text-green-600 bg-green-50";
+        return "bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border-emerald-300";
       default:
-        return "text-gray-600 bg-gray-50";
+        return "bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 border-slate-300";
     }
   };
 
   // Get compatibility score color
   const getScoreColor = (score) => {
-    if (score >= 70) return "text-green-600 font-semibold";
-    if (score >= 50) return "text-yellow-600 font-semibold";
-    return "text-red-600 font-semibold";
+    if (score >= 70) return "text-emerald-600 font-bold";
+    if (score >= 50) return "text-amber-600 font-bold";
+    return "text-rose-600 font-bold";
   };
 
   const formatDateTime = (dateString) => {
@@ -152,20 +152,20 @@ const MatchingResults = ({ onViewDetails }) => {
   };
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-blue-50 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-600">
-            <div className="flex items-center space-x-3">
-              <div className="bg-green-100 p-3 rounded-full">
-                <Heart className="w-6 h-6 text-green-500" />
+        <div className="mb-6">
+          <div className="bg-white rounded-xl shadow-md border border-slate-200 p-5">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-medical-500 to-medical-700 p-3 rounded-xl shadow-lg">
+                <Heart className="w-7 h-7 text-white" strokeWidth={2.5} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
                   Donor - Recipient Matching Results
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-slate-600 mt-0.5 text-sm">
                   View compatibility scores and risk assessments
                 </p>
               </div>
@@ -175,32 +175,32 @@ const MatchingResults = ({ onViewDetails }) => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-            {error}
+          <div className="bg-gradient-to-r from-rose-50 to-red-50 border-2 border-rose-300 text-rose-800 px-4 py-3 rounded-xl mb-6 shadow-sm">
+            <span className="font-medium">{error}</span>
           </div>
         )}
 
         {/* Loading State */}
         {loading && (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading matching results...</p>
+          <div className="bg-white rounded-xl shadow-md p-12 text-center border border-slate-200">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-emerald-600 mx-auto mb-4"></div>
+            <p className="text-slate-600 font-medium text-lg">Loading matching results...</p>
           </div>
         )}
 
         {/* Search Bar */}
         {!loading && (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="bg-white rounded-xl shadow-md p-6 mb-6 border border-slate-200">
             <div className="relative max-w-md">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+                <Search className="h-5 w-5 text-emerald-500" strokeWidth={2.5} />
               </div>
               <input
                 type="text"
                 placeholder="Search by Recipient ID or Donor ID"
                 value={searchTerm}
                 onChange={handleSearchChange}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                className="block w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm hover:shadow-md font-medium placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -208,79 +208,79 @@ const MatchingResults = ({ onViewDetails }) => {
 
         {/* Results Table */}
         {!loading && (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-200">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-100">
+                <thead className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b-2 border-emerald-200">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                       Recommended Match
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                       Recipient ID
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                       ML Compatibility
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                       Risk Category
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                       Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                       Time
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                       Action
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-slate-100">
                   {filteredData.length > 0 ? (
                     filteredData.map((item, index) => (
                       <tr
                         key={item.predictionId || index}
-                        className="hover:bg-gray-50 transition-colors"
+                        className="hover:bg-gradient-to-r hover:from-slate-50 hover:to-emerald-50 transition-all"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">
                           {item.donorId}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">
                           {item.recipientId}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className={getScoreColor(item.compatibilityScore)}>
+                          <span className={`${getScoreColor(item.compatibilityScore)} text-base`}>
                             {item.compatibilityScore}%
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskColor(
+                            className={`px-3 py-1 rounded-full text-xs font-bold border ${getRiskColor(
                               item.riskProbability
                             )}`}
                           >
                             {item.riskProbability}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4 text-gray-400" />
-                            {formatDateTime(item.createdAt).date}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-emerald-500" strokeWidth={2.5} />
+                            <span className="font-medium">{formatDateTime(item.createdAt).date}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4 text-gray-400" />
-                            {formatDateTime(item.createdAt).time}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-emerald-500" strokeWidth={2.5} />
+                            <span className="font-medium">{formatDateTime(item.createdAt).time}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <button
                             onClick={() => handleView(item.predictionId)}
-                            className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                            className="inline-flex items-center px-4 py-2 border-2 border-emerald-300 text-sm font-bold rounded-lg text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all shadow-md hover:shadow-lg"
                           >
-                            <Eye className="w-4 h-4 mr-1" />
+                            <Eye className="w-4 h-4 mr-2" strokeWidth={2.5} />
                             View
                           </button>
                         </td>
@@ -290,11 +290,16 @@ const MatchingResults = ({ onViewDetails }) => {
                     <tr>
                       <td
                         colSpan="7"
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center"
+                        className="px-6 py-12 text-center"
                       >
-                        {searchTerm
-                          ? "No matching results found"
-                          : "No prediction data available"}
+                        <div className="flex flex-col items-center gap-3">
+                          <Heart className="w-12 h-12 text-slate-300" strokeWidth={2} />
+                          <p className="text-slate-500 font-medium">
+                            {searchTerm
+                              ? "No matching results found"
+                              : "No prediction data available"}
+                          </p>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -306,16 +311,17 @@ const MatchingResults = ({ onViewDetails }) => {
 
         {/* Results Summary */}
         {!loading && filteredData.length > 0 && (
-          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
+          <div className="mt-6 bg-white rounded-xl shadow-md p-6 border border-slate-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Summary Statistics</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg border-2 border-emerald-200">
+                <div className="text-4xl font-bold text-emerald-600 mb-1">
                   {filteredData.length}
                 </div>
-                <div className="text-sm text-gray-600">Total Matches</div>
+                <div className="text-sm text-slate-600 font-medium">Total Matches</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">
+              <div className="text-center p-4 bg-gradient-to-br from-rose-50 to-red-50 rounded-lg border-2 border-rose-200">
+                <div className="text-4xl font-bold text-rose-600 mb-1">
                   {
                     filteredData.filter(
                       (item) => {
@@ -325,13 +331,13 @@ const MatchingResults = ({ onViewDetails }) => {
                     ).length
                   }
                 </div>
-                <div className="text-sm text-gray-600">High Risk / Unsuitable</div>
+                <div className="text-sm text-slate-600 font-medium">High Risk / Unsuitable</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-600">
+              <div className="text-center p-4 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg border-2 border-amber-200">
+                <div className="text-4xl font-bold text-amber-600 mb-1">
                   {filteredData.filter((item) => item.compatibilityScore >= 70).length}
                 </div>
-                <div className="text-sm text-gray-600">High Compatibility</div>
+                <div className="text-sm text-slate-600 font-medium">High Compatibility</div>
               </div>
             </div>
           </div>
@@ -346,7 +352,7 @@ const MatchingResults = ({ onViewDetails }) => {
       />
 
       {/* Toast Notifications */}
-      {ToastComponent}
+      <ToastComponent />
     </div>
   );
 };

@@ -135,28 +135,28 @@ const MakePrediction = () => {
     const effectiveDonorCount = selectAll ? donors.length : selectedDonorIds.length;
 
     return (
-        <div className="p-6">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-emerald-50 p-6">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-6">
                     <button
                         onClick={() => navigate("/app/dashboard")}
-                        className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors mb-4"
+                        className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-all mb-4 font-medium group"
                     >
-                        <ArrowLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" strokeWidth={2.5} />
                         <span>Back to Dashboard</span>
                     </button>
 
-                    <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-600">
-                        <div className="flex items-center space-x-3">
-                            <div className="bg-green-100 p-3 rounded-full">
-                                <Heart className="w-6 h-6 text-green-500" />
+                    <div className="bg-white rounded-xl shadow-md border border-slate-200 p-5">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-gradient-to-br from-medical-500 to-medical-700 p-3 rounded-xl shadow-lg">
+                                <Heart className="w-7 h-7 text-white" strokeWidth={2.5} />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-800">
+                                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
                                     Risk-Based Donor Matching
                                 </h1>
-                                <p className="text-gray-600">
+                                <p className="text-slate-600 mt-0.5 text-sm">
                                     Research-grade multi-donor compatibility analysis with AI explainability
                                 </p>
                             </div>
@@ -166,17 +166,17 @@ const MakePrediction = () => {
 
                 {/* Error Message */}
                 {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6 flex items-center gap-2">
-                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                        {error}
+                    <div className="bg-gradient-to-r from-rose-50 to-red-50 border-2 border-rose-300 text-rose-800 px-4 py-3 rounded-xl mb-6 flex items-center gap-3 shadow-sm">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" strokeWidth={2.5} />
+                        <span className="font-medium">{error}</span>
                     </div>
                 )}
 
                 {/* Loading State */}
                 {loading ? (
-                    <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-                        <Loader className="w-12 h-12 animate-spin text-green-600 mx-auto mb-4" />
-                        <p className="text-gray-600">Loading donors and recipients...</p>
+                    <div className="bg-white rounded-xl shadow-md p-12 text-center border border-slate-200">
+                        <Loader className="w-16 h-16 animate-spin text-medical-600 mx-auto mb-4" strokeWidth={2.5} />
+                        <p className="text-slate-600 font-medium">Loading donors and recipients...</p>
                     </div>
                 ) : result ? (
                     /* Show Results */
@@ -193,13 +193,13 @@ const MakePrediction = () => {
                     /* Selection Form */
                     <div className="space-y-6">
                         {/* Recipient Selection */}
-                        <div className="bg-white rounded-lg shadow-sm p-6">
-                            <h2 className="text-lg font-semibold text-gray-800 mb-4">1. Select Recipient</h2>
+                        <div className="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+                            <h2 className="text-xl font-bold text-slate-900 mb-4 tracking-tight">1. Select Recipient</h2>
 
                             <select
                                 value={selectedRecipient?._id || ""}
                                 onChange={handleRecipientSelect}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-500 focus:border-medical-500 transition-all shadow-sm hover:shadow-md font-medium"
                             >
                                 <option value="">-- Choose a recipient --</option>
                                 {recipients.map((recipient) => (
@@ -210,23 +210,23 @@ const MakePrediction = () => {
                             </select>
 
                             {selectedRecipient && (
-                                <div className="mt-3 p-4 bg-purple-50 rounded border border-purple-200">
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <div className="mt-4 p-5 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200 shadow-sm">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                         <div>
-                                            <span className="font-medium text-gray-700">Age:</span>
-                                            <span className="ml-2 text-gray-900">{selectedRecipient.age}</span>
+                                            <span className="font-bold text-slate-700">Age:</span>
+                                            <span className="ml-2 text-slate-900 font-medium">{selectedRecipient.age}</span>
                                         </div>
                                         <div>
-                                            <span className="font-medium text-gray-700">Blood:</span>
-                                            <span className="ml-2 text-gray-900">{selectedRecipient.bloodGroup}</span>
+                                            <span className="font-bold text-slate-700">Blood:</span>
+                                            <span className="ml-2 text-slate-900 font-medium">{selectedRecipient.bloodGroup}</span>
                                         </div>
                                         <div>
-                                            <span className="font-medium text-gray-700">Location:</span>
-                                            <span className="ml-2 text-gray-900">{selectedRecipient.location}</span>
+                                            <span className="font-bold text-slate-700">Location:</span>
+                                            <span className="ml-2 text-slate-900 font-medium">{selectedRecipient.location}</span>
                                         </div>
                                         <div>
-                                            <span className="font-medium text-gray-700">Waiting:</span>
-                                            <span className="ml-2 text-gray-900">{selectedRecipient.waitingTime || 0} months</span>
+                                            <span className="font-bold text-slate-700">Waiting:</span>
+                                            <span className="ml-2 text-slate-900 font-medium">{selectedRecipient.waitingTime || 0} months</span>
                                         </div>
                                     </div>
                                 </div>
@@ -234,52 +234,52 @@ const MakePrediction = () => {
                         </div>
 
                         {/* Donor Selection */}
-                        <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="bg-white rounded-xl shadow-md p-6 border border-slate-200">
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-semibold text-gray-800">2. Select Donors</h2>
+                                <h2 className="text-xl font-bold text-slate-900 tracking-tight">2. Select Donors</h2>
                                 <div className="flex items-center space-x-2">
                                     <button
                                         onClick={handleSelectAllToggle}
-                                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${selectAll
-                                            ? "bg-green-100 text-green-700 border border-green-300"
-                                            : "bg-gray-100 text-gray-700 border border-gray-300"
+                                        className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl transition-all font-medium shadow-sm hover:shadow-md ${selectAll
+                                            ? "bg-gradient-to-r from-medical-100 to-teal-100 text-medical-800 border-2 border-medical-400"
+                                            : "bg-slate-100 text-slate-700 border-2 border-slate-300 hover:bg-slate-200"
                                             }`}
                                     >
-                                        {selectAll ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
-                                        <span className="font-medium">Select All Donors ({donors.length})</span>
+                                        {selectAll ? <CheckSquare className="w-5 h-5" strokeWidth={2.5} /> : <Square className="w-5 h-5" strokeWidth={2.5} />}
+                                        <span>Select All Donors ({donors.length})</span>
                                     </button>
                                 </div>
                             </div>
 
                             {!selectAll && (
                                 <>
-                                    <div className="mb-3 text-sm text-gray-600">
-                                        Selected: <span className="font-semibold text-gray-900">{selectedDonorIds.length}</span> donor(s)
+                                    <div className="mb-4 text-sm text-slate-600 font-medium">
+                                        Selected: <span className="font-bold text-slate-900 text-base">{selectedDonorIds.length}</span> donor(s)
                                     </div>
 
-                                    <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
-                                        <div className="divide-y divide-gray-200">
+                                    <div className="max-h-96 overflow-y-auto border-2 border-slate-200 rounded-xl shadow-sm">
+                                        <div className="divide-y divide-slate-100">
                                             {donors.map((donor) => (
                                                 <label
                                                     key={donor._id}
-                                                    className="flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                                                    className="flex items-center p-4 hover:bg-gradient-to-r hover:from-slate-50 hover:to-medical-50 cursor-pointer transition-all"
                                                 >
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedDonorIds.includes(donor._id)}
                                                         onChange={() => handleDonorToggle(donor._id)}
-                                                        className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                                        className="w-5 h-5 text-medical-600 border-slate-300 rounded focus:ring-medical-500"
                                                     />
                                                     <div className="ml-4 flex-1">
                                                         <div className="flex items-center justify-between">
-                                                            <span className="font-medium text-gray-900">
+                                                            <span className="font-bold text-slate-900">
                                                                 {donor.donorId} - {donor.name}
                                                             </span>
-                                                            <span className="text-sm text-gray-600">
+                                                            <span className="px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-medical-100 to-teal-100 text-medical-800 border border-medical-300">
                                                                 {donor.bloodGroup}
                                                             </span>
                                                         </div>
-                                                        <div className="mt-1 text-sm text-gray-500">
+                                                        <div className="mt-1 text-sm text-slate-600 font-medium">
                                                             Age: {donor.age} | Location: {donor.location} | GFR: {donor.gfr || "N/A"}
                                                         </div>
                                                     </div>
@@ -291,14 +291,14 @@ const MakePrediction = () => {
                             )}
 
                             {selectAll && (
-                                <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
-                                    <div className="flex items-center space-x-3">
-                                        <CheckSquare className="w-6 h-6 text-green-600" />
+                                <div className="p-6 bg-gradient-to-r from-medical-50 to-teal-50 border-2 border-medical-200 rounded-xl shadow-sm">
+                                    <div className="flex items-center space-x-4">
+                                        <CheckSquare className="w-8 h-8 text-medical-600" strokeWidth={2.5} />
                                         <div>
-                                            <p className="font-medium text-green-900">
+                                            <p className="font-bold text-medical-900 text-lg">
                                                 All {donors.length} donors will be evaluated
                                             </p>
-                                            <p className="text-sm text-green-700 mt-1">
+                                            <p className="text-sm text-medical-700 mt-1 font-medium">
                                                 The system will rank all available donors by compatibility and risk level
                                             </p>
                                         </div>
@@ -308,42 +308,42 @@ const MakePrediction = () => {
                         </div>
 
                         {/* Run Matching Button */}
-                        <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="bg-white rounded-xl shadow-md p-8 border border-slate-200">
                             <div className="flex flex-col items-center space-y-4">
                                 <button
                                     onClick={handleRunMatching}
                                     disabled={!selectedRecipient || effectiveDonorCount === 0 || predicting}
-                                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center space-x-3 min-w-[300px] justify-center shadow-lg"
+                                    className="bg-gradient-to-r from-medical-600 to-teal-700 hover:from-medical-700 hover:to-teal-800 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed text-white px-10 py-5 rounded-xl font-bold text-lg transition-all flex items-center space-x-3 min-w-[320px] justify-center shadow-lg hover:shadow-xl group"
                                 >
                                     {predicting ? (
                                         <>
-                                            <Loader className="w-6 h-6 animate-spin" />
+                                            <Loader className="w-7 h-7 animate-spin" strokeWidth={2.5} />
                                             <span>Analyzing {effectiveDonorCount} donor(s)...</span>
                                         </>
                                     ) : (
                                         <>
-                                            <Heart className="w-6 h-6" />
+                                            <Heart className="w-7 h-7 group-hover:scale-110 transition-transform" strokeWidth={2.5} />
                                             <span>Run Risk-Based Matching</span>
                                         </>
                                     )}
                                 </button>
 
                                 {selectedRecipient && effectiveDonorCount > 0 && !predicting && (
-                                    <p className="text-sm text-gray-600 text-center">
-                                        Evaluating <span className="font-semibold">{effectiveDonorCount}</span> donor(s) for{" "}
-                                        <span className="font-semibold">{selectedRecipient.name}</span>
+                                    <p className="text-sm text-slate-600 text-center font-medium">
+                                        Evaluating <span className="font-bold text-medical-700">{effectiveDonorCount}</span> donor(s) for{" "}
+                                        <span className="font-bold text-medical-700">{selectedRecipient.name}</span>
                                     </p>
                                 )}
                             </div>
                         </div>
 
                         {/* Clinical Disclaimer */}
-                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-l-4 border-amber-400 p-5 rounded-xl shadow-sm">
                             <div className="flex">
-                                <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                                <div className="ml-3">
-                                    <h3 className="text-sm font-medium text-yellow-800">Clinical Decision Support Tool</h3>
-                                    <div className="mt-2 text-sm text-yellow-700">
+                                <AlertCircle className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
+                                <div className="ml-4">
+                                    <h3 className="text-sm font-bold text-amber-900">Clinical Decision Support Tool</h3>
+                                    <div className="mt-2 text-sm text-amber-800 font-medium">
                                         <p>
                                             This system provides AI-based risk assessment and donor ranking to support clinical decision-making.
                                             Final transplant decisions must be made by qualified medical professionals based on comprehensive
@@ -361,7 +361,7 @@ const MakePrediction = () => {
             </div>
 
             {/* Toast Notifications */}
-            {ToastComponent}
+            <ToastComponent />
 
             {/* Confirmation Dialog */}
             <ConfirmDialog

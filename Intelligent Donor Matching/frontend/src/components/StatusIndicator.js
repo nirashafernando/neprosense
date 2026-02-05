@@ -5,13 +5,13 @@ import { Wifi, WifiOff, Database, Activity, CheckCircle, AlertCircle, Loader } f
  * Status Indicator Component
  * Shows real-time system health and connection status
  */
-const StatusIndicator = ({ mlServiceStatus = 'connected', dbStatus = 'connected', isProcessing = false }) => {
+const StatusIndicator = ({ mlServiceStatus = 'disconnected', dbStatus = 'disconnected', isProcessing = false }) => {
     const getStatusColor = (status) => {
         switch (status) {
-            case 'connected': return 'text-green-600 bg-green-100';
-            case 'disconnected': return 'text-red-600 bg-red-100';
-            case 'warning': return 'text-yellow-600 bg-yellow-100';
-            default: return 'text-gray-600 bg-gray-100';
+            case 'connected': return 'text-emerald-700 bg-emerald-100 border-emerald-300';
+            case 'disconnected': return 'text-rose-700 bg-rose-100 border-rose-300';
+            case 'warning': return 'text-amber-700 bg-amber-100 border-amber-300';
+            default: return 'text-slate-700 bg-slate-100 border-slate-300';
         }
     };
 
@@ -25,27 +25,39 @@ const StatusIndicator = ({ mlServiceStatus = 'connected', dbStatus = 'connected'
         return status === 'connected' ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />;
     };
 
+    const getStatusText = (status) => {
+        return status === 'connected' ? 'Connected' : 'Offline';
+    };
+
     return (
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-2 text-xs bg-white rounded-xl shadow-lg border border-slate-200 p-2">
             {/* ML Service Status */}
-            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${getStatusColor(mlServiceStatus)}`}>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${getStatusColor(mlServiceStatus)}`}>
                 {getStatusIcon('ml', mlServiceStatus)}
-                <span className="font-medium">ML Service</span>
-                {mlServiceStatus === 'connected' && <CheckCircle className="w-3 h-3" />}
+                <span className="font-semibold">ML Service</span>
+                {mlServiceStatus === 'connected' ? (
+                    <CheckCircle className="w-3.5 h-3.5" />
+                ) : (
+                    <div className="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></div>
+                )}
             </div>
 
             {/* Database Status */}
-            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${getStatusColor(dbStatus)}`}>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${getStatusColor(dbStatus)}`}>
                 {getStatusIcon('db', dbStatus)}
-                <span className="font-medium">Database</span>
-                {dbStatus === 'connected' && <CheckCircle className="w-3 h-3" />}
+                <span className="font-semibold">Database</span>
+                {dbStatus === 'connected' ? (
+                    <CheckCircle className="w-3.5 h-3.5" />
+                ) : (
+                    <div className="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></div>
+                )}
             </div>
 
             {/* Processing Indicator */}
             {isProcessing && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-full text-blue-600 bg-blue-100">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-blue-700 bg-blue-100 border-blue-300">
                     <Loader className="w-4 h-4 animate-spin" />
-                    <span className="font-medium">Processing</span>
+                    <span className="font-semibold">Processing</span>
                 </div>
             )}
         </div>
