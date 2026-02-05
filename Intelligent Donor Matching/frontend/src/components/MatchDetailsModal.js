@@ -3,6 +3,7 @@ import { X, Award, TrendingUp, Activity, Users, CheckCircle, AlertTriangle, Down
 import api from '../lib/axios';
 import MatchParameterExplanation from './MatchParameterExplanation';
 import MedicalTooltip from './MedicalTooltip';
+import { useToast } from './Toast';
 
 // Helper function to check blood group compatibility
 const isBloodGroupCompatible = (donorBloodGroup, recipientBloodGroup) => {
@@ -26,6 +27,7 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
     const [error, setError] = useState(null);
     const [data, setData] = useState(null);
     const [downloading, setDownloading] = useState(false);
+    const { showSuccess, showError, ToastComponent } = useToast();
 
     useEffect(() => {
         if (isOpen && predictionId) {
@@ -97,9 +99,11 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
+            showSuccess('PDF report downloaded successfully!');
         } catch (err) {
             console.error('Error downloading PDF:', err);
-            alert('Failed to download PDF report. Please try again.');
+            const errorMessage = err.response?.data?.message || 'Failed to download PDF report. Please try again.';
+            showError(errorMessage);
         } finally {
             setDownloading(false);
         }
@@ -108,12 +112,14 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-            {/* Overlay */}
-            <div
-                className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-                onClick={onClose}
-            ></div>
+        <>
+            <ToastComponent />
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+                {/* Overlay */}
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                    onClick={onClose}
+                ></div>
 
             {/* Modal */}
             <div className="flex items-center justify-center min-h-screen p-4">
@@ -392,7 +398,8 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                     )}
                 </div>
             </div>
-        </div>
+            </div>
+        </>
     );
 };
 
