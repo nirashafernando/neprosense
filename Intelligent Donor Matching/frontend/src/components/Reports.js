@@ -16,9 +16,13 @@ import {
 } from "lucide-react";
 import api from "../lib/axios";
 import MatchDetailsModal from "./MatchDetailsModal";
+import { useToast } from "./Toast";
+import ConfirmDialog from "./ConfirmDialog";
 
 const Reports = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError, showWarning, ToastComponent } = useToast();
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -63,7 +67,7 @@ const Reports = () => {
   const handleDownloadReport = async (reportId) => {
     setDownloading(reportId);
     try {
-      const response = await api.get(`/ predictions / batch / ${reportId}/pdf`, {
+      const response = await api.get(`/predictions/batch/${reportId}/pdf`, {
         responseType: 'blob'
       });
 
@@ -76,19 +80,30 @@ const Reports = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      showSuccess('Report downloaded successfully');
     } catch (err) {
       console.error('Error downloading PDF:', err);
-      alert('Failed to download PDF report. Please try again.');
+      showError('Failed to download PDF report. Please try again.');
     } finally {
       setDownloading(null);
     }
   };
 
   const handleDeleteReport = async (reportId, reportName) => {
-    if (!window.confirm(`Are you sure you want to delete ${reportName}? This action cannot be undone.`)) {
-      return;
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: "Delete Report?",
+      message: `Are you sure you want to delete ${reportName}? This action cannot be undone.`,
+      type: "danger",
+      confirmText: "Delete Report",
+      onConfirm: () => {
+        setConfirmDialog({ isOpen: false });
+        executeDelete(reportId);
+      }
+    });
+  };
 
+  const executeDelete = async (reportId) => {
     setDeleting(reportId);
     try {
       await api.delete(`/predictions/batch/${reportId}`);
@@ -96,11 +111,10 @@ const Reports = () => {
       // Remove from local state
       setReports(reports.filter(r => r._id !== reportId));
 
-      // Show success message (optional)
-      alert('Report deleted successfully');
+      showSuccess('Report deleted successfully');
     } catch (err) {
       console.error('Error deleting report:', err);
-      alert('Failed to delete report: ' + (err.response?.data?.message || err.message));
+      showError('Failed to delete report: ' + (err.response?.data?.message || err.message));
     } finally {
       setDeleting(null);
     }
@@ -394,6 +408,15 @@ const Reports = () => {
         isOpen={isModalOpen}
         onClose={closeModal}
         predictionId={selectedPredictionId}
+      />
+
+      {/* Toast Notifications */}
+      {ToastComponent}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        {...confirmDialog}
+        onClose={() => setConfirmDialog({ isOpen: false })}
       />
     </div>
   );
