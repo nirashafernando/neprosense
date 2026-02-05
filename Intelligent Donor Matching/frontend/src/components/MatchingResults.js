@@ -313,9 +313,10 @@ const MatchingResults = ({ onViewDetails }) => {
                 <div className="text-2xl font-bold text-red-600">
                   {
                     filteredData.filter(
-                      (item) =>
-                        item.riskProbability.toLowerCase() === "high" ||
-                        item.riskProbability.toLowerCase() === "unsuitable"
+                      (item) => {
+                        const risk = item.riskProbability.toLowerCase();
+                        return risk.includes("high") || risk.includes("unsuitable");
+                      }
                     ).length
                   }
                 </div>
