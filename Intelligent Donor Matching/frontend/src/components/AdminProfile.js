@@ -17,9 +17,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/axios";
+import { useToast } from "./Toast";
 
 const AdminProfile = () => {
     const { user } = useAuth();
+    const { showSuccess, showError, ToastComponent } = useToast();
     const [stats, setStats] = useState({
         totalPredictions: 0,
         donorsCount: 0,
@@ -40,7 +42,6 @@ const AdminProfile = () => {
 
     const [loading, setLoading] = useState(false);
     const [fetchingStats, setFetchingStats] = useState(true);
-    const [updateSuccess, setUpdateSuccess] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -102,7 +103,6 @@ const AdminProfile = () => {
 
     const handleUpdate = async () => {
         setLoading(true);
-        setUpdateSuccess(false);
         setError(null);
 
         try {
@@ -116,14 +116,11 @@ const AdminProfile = () => {
             });
 
             if (response.data.success) {
-                setUpdateSuccess(true);
-                setTimeout(() => {
-                    setUpdateSuccess(false);
-                }, 3000);
+                showSuccess('Profile updated successfully!');
             }
         } catch (err) {
             console.error("Error updating profile:", err);
-            setError(err.response?.data?.message || "Failed to update profile. Please try again.");
+            showError(err.response?.data?.message || "Failed to update profile. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -264,13 +261,6 @@ const AdminProfile = () => {
                         </div>
                     )}
 
-                    {updateSuccess && (
-                        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                            <p className="text-green-800 font-medium">Profile updated successfully!</p>
-                        </div>
-                    )}
-
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Left Column */}
                         <div className="space-y-5">
@@ -385,6 +375,9 @@ const AdminProfile = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Toast Notifications */}
+            {ToastComponent}
         </div>
     );
 };

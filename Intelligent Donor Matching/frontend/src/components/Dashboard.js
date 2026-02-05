@@ -14,10 +14,15 @@ import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/axios";
 import DashboardStats from "./DashboardStats";
 import MatchDistributionChart from "./MatchDistributionChart";
+import { useToast } from "./Toast";
+import ConfirmDialog from "./ConfirmDialog";
+import OnboardingTutorial from "./OnboardingTutorial";
+import MedicalTooltip from "./MedicalTooltip";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showSuccess, showError, showWarning, showInfo, ToastComponent } = useToast();
   const [donorCount, setDonorCount] = useState(0);
   const [recipientCount, setRecipientCount] = useState(0);
   const [predictionCount, setPredictionCount] = useState(0);
@@ -25,7 +30,7 @@ const Dashboard = () => {
   const [recipients, setRecipients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'donors', 'recipients'
+  const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingDonor, setEditingDonor] = useState(null);
   const [editingRecipient, setEditingRecipient] = useState(null);
@@ -33,9 +38,17 @@ const Dashboard = () => {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [predictions, setPredictions] = useState([]);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     fetchData();
+    
+    // Check if user has seen onboarding
+    const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+    if (!hasSeenOnboarding) {
+      setTimeout(() => setShowOnboarding(true), 500);
+    }
   }, []);
 
   const fetchData = async () => {
@@ -68,32 +81,76 @@ const Dashboard = () => {
     } catch (err) {
       console.error("Error fetching data:", err);
       setError(err.response?.data?.message || "Failed to fetch data");
+      showError(
+        'Failed to load dashboard data',
+        5000,
+        {
+          label: 'Retry',
+          onClick: fetchData
+        }
+      );
       setLoading(false);
     }
   };
 
   const handleDeleteDonor = async (donorId) => {
-    if (!window.confirm('Are you sure you want to delete this donor?')) return;
-
-    try {
-      await api.delete(`/donors/${donorId}`);
-      setDonors(donors.filter(d => d._id !== donorId));
-      setDonorCount(prev => prev - 1);
-    } catch (err) {
-      alert('Failed to delete donor: ' + (err.response?.data?.message || err.message));
-    }
+    const donor = donors.find(d => d._id === donorId);
+    
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Donor Record',
+      message: 'Are you sure you want to delete this donor? This action cannot be undone and will remove all associated data.',
+      type: 'danger',
+      confirmText: 'Delete Donor',
+      cancelText: 'Keep Donor',
+      showPreview: true,
+      previewData: {
+        'Donor ID': donor?.donorId || 'N/A',
+        'Name': donor?.name || 'N/A',
+        'Blood Group': donor?.bloodGroup || 'N/A',
+        'Age': donor?.age || 'N/A'
+      },
+      onConfirm: async () => {
+        try {
+          await api.delete(`/donors/${donorId}`);
+          setDonors(donors.filter(d => d._id !== donorId));
+          setDonorCount(prev => prev - 1);
+          showSuccess('Donor deleted successfully');
+        } catch (err) {
+          showError('Failed to delete donor: ' + (err.response?.data?.message || err.message));
+        }
+      }
+    });
   };
 
   const handleDeleteRecipient = async (recipientId) => {
-    if (!window.confirm('Are you sure you want to delete this recipient?')) return;
-
-    try {
-      await api.delete(`/recipients/${recipientId}`);
-      setRecipients(recipients.filter(r => r._id !== recipientId));
-      setRecipientCount(prev => prev - 1);
-    } catch (err) {
-      alert('Failed to delete recipient: ' + (err.response?.data?.message || err.message));
-    }
+    const recipient = recipients.find(r => r._id === recipientId);
+    
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Recipient Record',
+      message: 'Are you sure you want to delete this recipient? This action cannot be undone and will remove all associated prediction data.',
+      type: 'danger',
+      confirmText: 'Delete Recipient',
+      cancelText: 'Keep Recipient',
+      showPreview: true,
+      previewData: {
+        'Recipient ID': recipient?.recipientId || 'N/A',
+        'Name': recipient?.name || 'N/A',
+        'Blood Group': recipient?.bloodGroup || 'N/A',
+        'Urgency Score': recipient?.urgencyScore || 'N/A'
+      },
+      onConfirm: async () => {
+        try {
+          await api.delete(`/recipients/${recipientId}`);
+          setRecipients(recipients.filter(r => r._id !== recipientId));
+          setRecipientCount(prev => prev - 1);
+          showSuccess('Recipient deleted successfully');
+        } catch (err) {
+          showError('Failed to delete recipient: ' + (err.response?.data?.message || err.message));
+        }
+      }
+    });
   };
 
   const handleEditDonor = (donor) => {
@@ -135,7 +192,7 @@ const Dashboard = () => {
         showSuccess('Donor updated successfully!');
       }
     } catch (err) {
-      alert('Failed to update donor: ' + (err.response?.data?.message || err.message));
+      showError('Failed to update donor: ' + (err.response?.data?.message || err.message));
     } finally {
       setSaving(false);
     }
@@ -155,7 +212,7 @@ const Dashboard = () => {
         showSuccess('Recipient updated successfully!');
       }
     } catch (err) {
-      alert('Failed to update recipient: ' + (err.response?.data?.message || err.message));
+      showError('Failed to update recipient: ' + (err.response?.data?.message || err.message));
     } finally {
       setSaving(false);
     }
@@ -165,11 +222,6 @@ const Dashboard = () => {
     setEditingDonor(null);
     setEditingRecipient(null);
     setEditFormData({});
-  };
-
-  const showSuccess = (message) => {
-    setSuccessMessage(message);
-    setTimeout(() => setSuccessMessage(''), 3000);
   };
 
   const filteredDonors = donors.filter(donor =>
@@ -188,6 +240,25 @@ const Dashboard = () => {
 
   return (
     <div className="p-6">
+      {/* Toast Notifications */}
+      {ToastComponent}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        {...confirmDialog}
+        onClose={() => setConfirmDialog({ isOpen: false })}
+      />
+
+      {/* Onboarding Tutorial */}
+      {showOnboarding && (
+        <OnboardingTutorial
+          userRole={user?.role}
+          onComplete={() => {
+            showInfo('Welcome to NeproSense! You\'re all set to begin.', 4000);
+          }}
+        />
+      )}
+
       <div className="max-w-7xl mx-auto">
         {/* Welcome Header */}
         <div className="mb-8">
@@ -434,8 +505,12 @@ const Dashboard = () => {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blood Group</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <MedicalTooltip term="Age">Age</MedicalTooltip>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <MedicalTooltip term="Blood Compatibility">Blood Group</MedicalTooltip>
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     {isClinician && (
@@ -612,8 +687,12 @@ const Dashboard = () => {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blood Group</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <MedicalTooltip term="Age">Age</MedicalTooltip>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <MedicalTooltip term="Blood Compatibility">Blood Group</MedicalTooltip>
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Urgency</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     {isClinician && (
