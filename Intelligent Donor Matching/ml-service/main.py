@@ -63,6 +63,7 @@ class RecipientData(BaseModel):
     systolicBP: float = Field(..., ge=80, le=200, description="Recipient systolic BP (mmHg)")
     diastolicBP: float = Field(..., ge=40, le=130, description="Recipient diastolic BP (mmHg)")
     dialysisYears: float = Field(..., ge=0, le=30, description="Years on dialysis")
+    pra: Optional[float] = Field(0, ge=0, le=100, description="Panel Reactive Antibody percentage (0-100)")
     diabetes: bool = Field(..., description="Recipient diabetes status")
     hypertension: bool = Field(..., description="Recipient hypertension status")
     previousTransplants: int = Field(..., ge=0, le=5, description="Number of previous transplants")
@@ -299,9 +300,7 @@ def generate_feature_description(feature: str, importance: float) -> str:
         'Recipient_PRA': f"Recipient antibody sensitization {impact} rejection risk",
         'Donor_DM': f"Donor diabetes status {impact} rejection risk",
         'Donor_HTN': f"Donor hypertension {impact} compatibility",
-        'Donor_Smoking': f"Donor smoking history {impact} organ quality",
         'Dialysis_Years': f"Time on dialysis {impact} transplant urgency",
-        'Previous_Transplants': f"Previous transplant history {impact} risk",
         'Donor_BMI': f"Donor BMI {impact} surgical risk",
         'Donor_Risk_Index': f"Composite donor health score {impact} overall risk",
         'HLA_Match_Score': f"HLA tissue compatibility {impact} rejection risk (strongest factor)",
@@ -326,11 +325,23 @@ def prepare_features(donor: DonorData, recipient: RecipientData) -> pd.DataFrame
     """
     Prepare features for model prediction matching the EXACT trained model schema.
     
-    The trained model was built with a preprocessing pipeline that includes:
-    - Numeric features: mean imputation + standard scaling
-    - Categorical features: most frequent imputation + one-hot encoding
+    CRITICAL: The model was trained with EXACTLY 14 features (no Donor_Smoking, no Previous_Transplants)
     
-    Feature order matches the trained notebook model.
+    Model expects these 14 features in this order:
+    1. Donor_Age
+    2. Donor_BMI
+    3. Donor_eGFR
+    4. Donor_HTN
+    5. Donor_DM
+    6. Donor_ABO (categorical → one-hot encoded)
+    7. Recipient_Age
+    8. Recipient_ABO (categorical → one-hot encoded)
+    9. Recipient_PRA
+    10. Dialysis_Years
+    11. ABO_Compatibility
+    12. Age_Gap
+    13. Donor_Risk_Index
+    14. HLA_Match_Score
     """
     
     # Blood group encoding for categorical features (will be one-hot encoded)
@@ -354,47 +365,55 @@ def prepare_features(donor: DonorData, recipient: RecipientData) -> pd.DataFrame
     recipient_hla = getattr(recipient, 'hlaTyping', '') or ''
     hla_match_score = calculate_hla_match_score(donor_hla, recipient_hla)
     
-    # Recipient PRA calculation (0-100) - Panel Reactive Antibody
-    # Estimate based on sensitization factors
-    recipient_pra = min(100, recipient.previousTransplants * 30 + (20 if recipient.diabetes else 0))
+    # Recipient PRA (Panel Reactive Antibody) - Use actual PRA value if provided
+    # PRA represents sensitization level (0-100%)
+    recipient_pra = float(getattr(recipient, 'pra', 0) or 0)
     
-    # Donor Risk Index - Composite score of donor health (matching training data)
+    # Donor Risk Index - Composite score of donor health
+    # NOTE: The training data Donor_Risk_Index calculation does NOT include smoking
+    # It only includes: age, BMI, GFR, hypertension, and diabetes
     age_factor = (donor.age - 20) / 30  # Normalized age risk (0-1.3 for ages 20-60)
     bmi_factor = abs(donor.bmi - 24) / 10  # Deviation from ideal BMI (~24)
     gfr_factor = max(0, (120 - donor.gfr) / 60)  # Lower GFR = higher risk
     comorbidity_factor = (int(donor.hypertension) * 0.5) + (int(donor.diabetes) * 0.8)
     donor_risk_index = 1.0 + age_factor + bmi_factor + gfr_factor + comorbidity_factor
     
-    # Create feature dictionary matching TRAINED MODEL schema
-    # These must match the columns used during training in donor.ipynb
+    # Create feature dictionary matching TRAINED MODEL schema (14 features ONLY)
+    # ⚠️ CRITICAL: DO NOT include Donor_Smoking or Previous_Transplants - model was NOT trained with these!
     features = {
-        # Donor features
+        # Donor features (5 numeric + 1 categorical)
         'Donor_Age': float(donor.age),
         'Donor_BMI': float(donor.bmi),
         'Donor_eGFR': float(donor.gfr),
         'Donor_HTN': int(donor.hypertension),
         'Donor_DM': int(donor.diabetes),
-        'Donor_Smoking': int(donor.smoking),
-        'Donor_ABO': donor_abo_raw,  # Categorical: will be one-hot encoded
+        'Donor_ABO': donor_abo_raw,  # Categorical: will be one-hot encoded to 4 features
         
-        # Recipient features  
+        # Recipient features (3 numeric + 1 categorical)
         'Recipient_Age': float(recipient.age),
-        'Recipient_ABO': recipient_abo_raw,  # Categorical: will be one-hot encoded
+        'Recipient_ABO': recipient_abo_raw,  # Categorical: will be one-hot encoded to 4 features
         'Recipient_PRA': float(recipient_pra),
         'Dialysis_Years': float(recipient.dialysisYears),
-        'Previous_Transplants': int(recipient.previousTransplants),
         
-        # Rule-based features (computed, not learned)
-        'HLA_Match_Score': int(hla_match_score),
+        # Rule-based features (2 numeric)
         'ABO_Compatibility': int(abo_compatibility),
+        'HLA_Match_Score': int(hla_match_score),
         
-        # Derived features
+        # Derived features (2 numeric)
         'Age_Gap': float(age_gap),
         'Donor_Risk_Index': float(donor_risk_index)
     }
     
-    # Create DataFrame
+    # Create DataFrame with exact column order the model expects
     df = pd.DataFrame([features])
+    
+    # Reorder columns to match training order
+    column_order = [
+        'Donor_Age', 'Donor_BMI', 'Donor_eGFR', 'Donor_HTN', 'Donor_DM', 'Donor_ABO',
+        'Recipient_Age', 'Recipient_ABO', 'Recipient_PRA', 'Dialysis_Years',
+        'ABO_Compatibility', 'Age_Gap', 'Donor_Risk_Index', 'HLA_Match_Score'
+    ]
+    df = df[column_order]
     
     return df
 
@@ -442,9 +461,7 @@ def mock_prediction(donor: DonorData, recipient: RecipientData) -> float:
     elif donor.gfr < 90:
         base_risk += 0.05  # Slightly reduced = +5% risk
     
-    # Recipient sensitization (previous transplants increase risk)
-    if recipient.previousTransplants > 0:
-        base_risk += 0.08 * recipient.previousTransplants  # +8% per previous transplant
+    # Note: Recipient sensitization (PRA) and previous transplants not used in this model
     
     # Ensure risk is between 0 and 1
     risk = max(0.0, min(1.0, base_risk))
@@ -456,7 +473,6 @@ def mock_prediction(donor: DonorData, recipient: RecipientData) -> float:
     print(f"Age Diff: {age_diff} years")
     print(f"Donor Health: DM={donor.diabetes}, HTN={donor.hypertension}, Smoking={donor.smoking}")
     print(f"Donor GFR: {donor.gfr}")
-    print(f"Previous Transplants: {recipient.previousTransplants}")
     print(f"Final Risk Probability: {risk:.2f} ({risk*100:.0f}%)")
     print(f"Compatibility Score: {(1-risk)*100:.0f}%")
     print(f"===================================\n")
@@ -500,6 +516,11 @@ async def predict(request: PredictionRequest):
         # Check blood group compatibility first
         blood_compatible = check_blood_group_compatibility(donor.bloodGroup, recipient.bloodGroup)
         
+        # Calculate HLA match score for boost logic
+        donor_hla = getattr(donor, 'hlaTyping', '') or ''
+        recipient_hla = getattr(recipient, 'hlaTyping', '') or ''
+        hla_match_score = calculate_hla_match_score(donor_hla, recipient_hla)
+        
         shap_explanation = []
         
         if model is not None:
@@ -520,6 +541,13 @@ async def predict(request: PredictionRequest):
             # Use mock prediction
             probability = mock_prediction(donor, recipient)
             logger.info("Using mock prediction (model not loaded)")
+        
+        # POST-PROCESSING BOOST: Perfect HLA match + blood compatibility
+        # If HLA 6/6 and blood compatible, boost score by 28%
+        if hla_match_score == 6 and blood_compatible:
+            original_prob = probability
+            probability = min(probability + 0.28, 0.98)  # Boost by 28%, cap at 98%
+            logger.info(f"✨ HLA 6/6 PERFECT MATCH BOOST: {original_prob:.4f} → {probability:.4f} (+28%)")
         
         # Apply blood group compatibility constraint
         if not blood_compatible:
@@ -651,6 +679,13 @@ async def predict_batch(request: BatchPredictionRequest):
                     print(f"\nModel Prediction:")
                     print(f"  Suitability Probability: {probability:.4f} ({probability*100:.1f}%)")
                     print(f"{'='*70}\n")
+                    
+                    # POST-PROCESSING BOOST: Perfect HLA match + blood compatibility
+                    # If HLA 6/6 and blood compatible, boost score by 28%
+                    if hla_match_score == 6 and blood_compatible:
+                        original_prob = probability
+                        probability = min(probability + 0.28, 0.98)  # Boost by 28%, cap at 98%
+                        print(f"✨ HLA 6/6 PERFECT MATCH BOOST: {original_prob:.4f} → {probability:.4f} (+28%)\n")
                     
                     # Generate SHAP explanation if available
                     if shap_explainer is not None:
