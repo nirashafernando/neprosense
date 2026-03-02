@@ -1,5 +1,10 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "./contexts/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -53,7 +58,7 @@ function App() {
               <Route path="reports" element={<Reports />} />
               <Route path="admin-profile" element={<AdminProfile />} />
 
-              {/* Clinician-only routes */}
+              {/* Doctor-only routes */}
               <Route
                 path="donor"
                 element={
@@ -85,11 +90,26 @@ function App() {
             </Route>
 
             {/* Legacy redirects for backward compatibility */}
-            <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
-            <Route path="/admin-profile" element={<Navigate to="/app/admin-profile" replace />} />
-            <Route path="/make-prediction" element={<Navigate to="/app/make-prediction" replace />} />
-            <Route path="/matching-results" element={<Navigate to="/app/matching-results" replace />} />
-            <Route path="/reports" element={<Navigate to="/app/reports" replace />} />
+            <Route
+              path="/dashboard"
+              element={<Navigate to="/app/dashboard" replace />}
+            />
+            <Route
+              path="/admin-profile"
+              element={<Navigate to="/app/admin-profile" replace />}
+            />
+            <Route
+              path="/make-prediction"
+              element={<Navigate to="/app/make-prediction" replace />}
+            />
+            <Route
+              path="/matching-results"
+              element={<Navigate to="/app/matching-results" replace />}
+            />
+            <Route
+              path="/reports"
+              element={<Navigate to="/app/reports" replace />}
+            />
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />

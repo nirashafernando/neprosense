@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Image, ArrowLeft, AlertCircle, CheckCircle, Github } from "lucide-react";
+import { Image, ArrowLeft, AlertCircle, CheckCircle } from "lucide-react";
 
 const Component2Info = () => {
     const navigate = useNavigate();

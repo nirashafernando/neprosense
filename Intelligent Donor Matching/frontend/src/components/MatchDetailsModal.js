@@ -1,17 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { X, Award, TrendingUp, Heart, Activity, Users, CheckCircle, AlertTriangle, ChevronDown, Eye, Download } from 'lucide-react';
+import { X, Award, TrendingUp, Activity, Users, CheckCircle, AlertTriangle, Download, Heart, Eye } from 'lucide-react';
 import api from '../lib/axios';
+import MatchParameterExplanation from './MatchParameterExplanation';
+import MedicalTooltip from './MedicalTooltip';
+import { useToast } from './Toast';
+
+// Helper function to check blood group compatibility
+const isBloodGroupCompatible = (donorBloodGroup, recipientBloodGroup) => {
+    const compatibilityMap = {
+        'O-': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'], // Universal donor
+        'O+': ['O+', 'A+', 'B+', 'AB+'],
+        'A-': ['A-', 'A+', 'AB-', 'AB+'],
+        'A+': ['A+', 'AB+'],
+        'B-': ['B-', 'B+', 'AB-', 'AB+'],
+        'B+': ['B+', 'AB+'],
+        'AB-': ['AB-', 'AB+'],
+        'AB+': ['AB+'] // Universal recipient
+    };
+    
+    const compatibleRecipients = compatibilityMap[donorBloodGroup] || [];
+    return compatibleRecipients.includes(recipientBloodGroup);
+};
 
 const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [data, setData] = useState(null);
     const [downloading, setDownloading] = useState(false);
+    const { showSuccess, showError, ToastComponent } = useToast();
 
     useEffect(() => {
         if (isOpen && predictionId) {
             fetchPredictionDetails();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, predictionId]);
 
     const fetchPredictionDetails = async () => {
@@ -21,7 +43,37 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
             const response = await api.get(`/predictions/batch/${predictionId}/details`);
 
             if (response.data.success) {
-                setData(response.data.data);
+                // ===== DEBUG LOGGING =====
+                console.log('=== MODAL DATA DEBUG ===');
+                console.log('Full Response:', response.data.data);
+                if (response.data.data.topDonors && response.data.data.topDonors.length > 0) {
+                    const topDonor = response.data.data.topDonors[0];
+                    console.log('Top Donor:', topDonor);
+                    console.log('HLA Match Score:', topDonor.parameters?.hlaMatchScore);
+                    console.log('Risk Category:', topDonor.riskCategory);
+                    console.log('Match Score:', topDonor.matchScore);
+                    console.log('Probability:', topDonor.probability);
+                    console.log('Parameters:', topDonor.parameters);
+                }
+                console.log('========================');
+                // ===== END DEBUG =====
+
+                // Recalculate blood compatibility on frontend to ensure correctness
+                const dataWithCorrectCompatibility = {
+                    ...response.data.data,
+                    topDonors: response.data.data.topDonors.map(donor => ({
+                        ...donor,
+                        parameters: {
+                            ...donor.parameters,
+                            bloodGroupCompatible: isBloodGroupCompatible(
+                                donor.parameters.bloodGroup,
+                                response.data.data.recipient.bloodGroup
+                            )
+                        }
+                    }))
+                };
+
+                setData(dataWithCorrectCompatibility);
             }
             setLoading(false);
         } catch (err) {
@@ -39,17 +91,23 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
             });
 
             // Create download link
-            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `Donor_Matching_Report_${predictionId.slice(-8)}.pdf`);
             document.body.appendChild(link);
             link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            
+            // Clean up with delay
+            setTimeout(() => {
+                link.remove();
+                window.URL.revokeObjectURL(url);
+                showSuccess('PDF downloaded successfully');
+            }, 100);
         } catch (err) {
             console.error('Error downloading PDF:', err);
-            alert('Failed to download PDF report. Please try again.');
+            // Don't show error toast - download manager may intercept causing false errors
         } finally {
             setDownloading(false);
         }
@@ -58,12 +116,14 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-            {/* Overlay */}
-            <div
-                className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-                onClick={onClose}
-            ></div>
+        <>
+            <ToastComponent />
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+                {/* Overlay */}
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                    onClick={onClose}
+                ></div>
 
             {/* Modal */}
             <div className="flex items-center justify-center min-h-screen p-4">
@@ -116,10 +176,10 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
                                                 <h3 className="text-2xl font-bold text-gray-900">
-                                                    Top Match: {data.topDonors[0].donorId}
+                                                    Recommended Match (ML-Based): {data.topDonors[0].donorId}
                                                 </h3>
                                                 <span className="px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold">
-                                                    {data.topDonors[0].matchScore}% Match
+                                                    {data.topDonors[0].matchScore}% Compatibility
                                                 </span>
                                                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${data.topDonors[0].riskCategory?.category === 'Low Risk'
                                                     ? 'bg-green-100 text-green-700'
@@ -134,7 +194,7 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                             <div className="mt-4">
                                                 <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                                                     <CheckCircle className="w-5 h-5 text-green-600" />
-                                                    Why this donor is the best match:
+                                                    Why this donor is recommended (ML Analysis):
                                                 </p>
                                                 <ul className="space-y-2">
                                                     {data.explanation.reasons.map((reason, index) => (
@@ -187,12 +247,13 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                                                     <span className="text-sm font-semibold text-medical-600">
                                                                         {donor.matchScore}%
                                                                     </span>
-                                                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${donor.riskCategory?.category === 'Low Risk'
-                                                                        ? 'bg-green-100 text-green-700'
-                                                                        : donor.riskCategory?.category === 'Medium Risk'
-                                                                            ? 'bg-yellow-100 text-yellow-700'
-                                                                            : 'bg-red-100 text-red-700'
-                                                                        }`}>
+                                                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${(() => {
+                                                                        const category = donor.riskCategory?.category;
+                                                                        console.log(`Risk for ${donor.donorId}:`, category, 'Full riskCategory:', donor.riskCategory);
+                                                                        if (category === 'Low Risk') return 'bg-green-100 text-green-700';
+                                                                        if (category === 'Medium Risk') return 'bg-yellow-100 text-yellow-700';
+                                                                        return 'bg-red-100 text-red-700';
+                                                                    })()}`}>
                                                                         {donor.riskCategory?.category || 'Unknown'}
                                                                     </span>
                                                                 </div>
@@ -207,6 +268,7 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                                         icon={<Heart className="w-4 h-4" />}
                                                         values={data.topDonors.map(d => d.parameters.bloodGroup)}
                                                         recipient={data.recipient.bloodGroup}
+                                                        compatibilityData={data.topDonors.map(d => d.parameters.bloodGroupCompatible)}
                                                         bestIndex={0}
                                                     />
 
@@ -223,9 +285,13 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                                                     <ComparisonRow
                                                         label="HLA Match"
                                                         icon={<TrendingUp className="w-4 h-4" />}
-                                                        values={data.topDonors.map(d => `${d.parameters.hlaMatchScore}/6`)}
+                                                        values={data.topDonors.map(d => {
+                                                            const hlaScore = d.parameters?.hlaMatchScore ?? 0;
+                                                            console.log(`HLA Score for ${d.donorId}:`, hlaScore, 'Full params:', d.parameters);
+                                                            return `${hlaScore}/6`;
+                                                        })}
                                                         bestIndex={data.topDonors.reduce((best, curr, idx, arr) =>
-                                                            curr.parameters.hlaMatchScore > arr[best].parameters.hlaMatchScore ? idx : best, 0
+                                                            (curr.parameters?.hlaMatchScore ?? 0) > (arr[best].parameters?.hlaMatchScore ?? 0) ? idx : best, 0
                                                         )}
                                                     />
 
@@ -268,19 +334,30 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
 
                                         {/* Legend */}
                                         <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-                                            <div className="flex items-center gap-6 text-xs text-gray-600">
-                                                <span className="flex items-center gap-1">
-                                                    <span className="text-green-600 font-bold">✓</span> Optimal
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <span className="text-yellow-600 font-bold">▲</span> Acceptable
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <span className="text-red-600 font-bold">▼</span> Concern
-                                                </span>
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex items-center gap-6 text-xs text-gray-600">
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="text-green-600 font-bold">✓</span> Optimal Range
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="text-yellow-600 font-bold">▲</span> Acceptable Range
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="text-red-600 font-bold">▼</span> Requires Attention
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 italic">
+                                                    Note: Icons show individual parameter ranges. Overall ranking is determined by ML composite analysis.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Clinical Interpretation - Doctor-Friendly Explanation */}
+                                    <MatchParameterExplanation
+                                        donor={data.topDonors[0]}
+                                        recipient={data.recipient}
+                                    />
                                 </div>
 
                                 {/* Disclaimer */}
@@ -325,25 +402,135 @@ const MatchDetailsModal = ({ isOpen, onClose, predictionId }) => {
                     )}
                 </div>
             </div>
-        </div>
+            </div>
+        </>
     );
 };
 
-// Helper component for comparison rows
-const ComparisonRow = ({ label, icon, values, recipient, bestIndex = -1 }) => {
+// Helper component for comparison rows with enhanced clinical evaluation
+const ComparisonRow = ({ label, icon, values, recipient, bestIndex = -1, compatibilityData = [] }) => {
+    /**
+     * Enhanced clinical indicator logic
+     * Returns appropriate indicator based on medical guidelines and data sensitivity
+     * - ✓ (Green): Optimal range - ideal for transplantation
+     * - ▲ (Amber): Acceptable range - requires monitoring but viable
+     * - ▼ (Red): Requires attention - significant concern or barrier
+     */
     const getIndicator = (index, value) => {
-        if (bestIndex === index) return <span className="text-green-600 font-bold">✓</span>;
-        if (value === 'Healthy') return <span className="text-green-600 font-bold">✓</span>;
-        if (value.includes('DM') || value.includes('HTN')) return <span className="text-yellow-600 font-bold">▲</span>;
-        return <span className="text-gray-400">—</span>;
+        switch (label) {
+            case 'HLA Match':
+                // HLA matching is THE MOST CRITICAL FACTOR for long-term success
+                const hlaScore = parseInt(value.split('/')[0]);
+                if (hlaScore === 6) return <span className="text-green-600 font-bold" title="Perfect HLA match - Excellent long-term prognosis">✓</span>;
+                if (hlaScore === 5) return <span className="text-green-600 font-bold" title="Excellent HLA match - Very good compatibility">✓</span>;
+                if (hlaScore === 4) return <span className="text-yellow-600 font-bold" title="Good HLA match - Acceptable with monitoring">▲</span>;
+                if (hlaScore === 3) return <span className="text-yellow-600 font-bold" title="Fair HLA match - Increased immunosuppression needed">▲</span>;
+                if (hlaScore === 2) return <span className="text-orange-600 font-bold" title="Poor HLA match - High rejection risk">▼</span>;
+                return <span className="text-red-600 font-bold" title="Very poor HLA match - Critical rejection risk">▼</span>;
+
+            case 'eGFR':
+                // Kidney function - Critical for immediate post-transplant success
+                const gfr = parseInt(value);
+                if (gfr >= 100) return <span className="text-green-600 font-bold" title="Excellent kidney function">✓</span>;
+                if (gfr >= 90) return <span className="text-green-600 font-bold" title="Very good kidney function">✓</span>;
+                if (gfr >= 75) return <span className="text-yellow-600 font-bold" title="Good kidney function - acceptable">▲</span>;
+                if (gfr >= 60) return <span className="text-yellow-600 font-bold" title="Adequate kidney function - close monitoring needed">▲</span>;
+                if (gfr >= 45) return <span className="text-orange-600 font-bold" title="Borderline kidney function - significant concern">▼</span>;
+                return <span className="text-red-600 font-bold" title="Poor kidney function - high risk">▼</span>;
+
+            case 'BMI':
+                // BMI affects surgical outcomes and post-transplant complications
+                const bmi = parseFloat(value);
+                if (bmi >= 18.5 && bmi <= 24.9) return <span className="text-green-600 font-bold" title="Optimal BMI - ideal for surgery">✓</span>;
+                if (bmi >= 17 && bmi < 18.5) return <span className="text-yellow-600 font-bold" title="Slightly underweight - acceptable">▲</span>;
+                if (bmi >= 25 && bmi <= 27.5) return <span className="text-yellow-600 font-bold" title="Slightly overweight - manageable">▲</span>;
+                if (bmi >= 27.5 && bmi <= 30) return <span className="text-orange-600 font-bold" title="Overweight - increased surgical risk">▼</span>;
+                if (bmi > 30 && bmi <= 35) return <span className="text-orange-600 font-bold" title="Obese - significant surgical concerns">▼</span>;
+                return <span className="text-red-600 font-bold" title="Extreme BMI - high surgical risk">▼</span>;
+
+            case 'Age':
+                // Age affects both immediate and long-term outcomes
+                const age = parseInt(value);
+                if (age >= 18 && age <= 35) return <span className="text-green-600 font-bold" title="Young donor - optimal recovery potential">✓</span>;
+                if (age > 35 && age <= 45) return <span className="text-green-600 font-bold" title="Good age - excellent outcomes expected">✓</span>;
+                if (age > 45 && age <= 55) return <span className="text-yellow-600 font-bold" title="Acceptable age - good with monitoring">▲</span>;
+                if (age > 55 && age <= 65) return <span className="text-yellow-600 font-bold" title="Older donor - increased monitoring required">▲</span>;
+                if (age > 65 && age <= 70) return <span className="text-orange-600 font-bold" title="Elderly donor - careful evaluation needed">▼</span>;
+                return <span className="text-red-600 font-bold" title="Advanced age - significant concerns">▼</span>;
+
+            case 'Health Status':
+                // Comorbidities affect organ quality and recipient complications
+                if (value === 'Healthy') return <span className="text-green-600 font-bold" title="No comorbidities - optimal health">✓</span>;
+                
+                // Count comorbidities
+                const hasDiabetes = value.includes('DM');
+                const hasHypertension = value.includes('HTN');
+                const isSmoker = value.includes('Smoker');
+                const comorbidityCount = [hasDiabetes, hasHypertension, isSmoker].filter(Boolean).length;
+                
+                if (comorbidityCount === 1) {
+                    if (isSmoker) return <span className="text-yellow-600 font-bold" title="Smoking history - manageable risk">▲</span>;
+                    if (hasHypertension) return <span className="text-yellow-600 font-bold" title="Controlled hypertension - acceptable with monitoring">▲</span>;
+                    if (hasDiabetes) return <span className="text-orange-600 font-bold" title="Diabetes - requires careful evaluation">▼</span>;
+                }
+                
+                if (comorbidityCount === 2) {
+                    if (hasDiabetes && hasHypertension) return <span className="text-orange-600 font-bold" title="Multiple metabolic conditions - significant concern">▼</span>;
+                    return <span className="text-orange-600 font-bold" title="Multiple comorbidities - increased risk">▼</span>;
+                }
+                
+                if (comorbidityCount >= 3) return <span className="text-red-600 font-bold" title="Multiple serious comorbidities - high risk">▼</span>;
+                
+                return <span className="text-green-600 font-bold" title="Healthy">✓</span>;
+
+            case 'Blood Group':
+                // Blood compatibility is ABSOLUTE - no compromise possible
+                const isCompatible = compatibilityData[index];
+                if (isCompatible === true) return <span className="text-green-600 font-bold" title="Blood type compatible - Safe for transplant">✓</span>;
+                if (isCompatible === false) return <span className="text-red-600 font-bold text-lg" title="Blood type INCOMPATIBLE - Transplant not possible">✗</span>;
+                // Fallback for undefined/missing data
+                return <span className="text-gray-400" title="Compatibility data unavailable">—</span>;
+
+            default:
+                // Fallback for unknown parameters - use relative comparison
+                if (bestIndex === index) return <span className="text-green-600 font-bold">✓</span>;
+                return <span className="text-gray-400">—</span>;
+        }
     };
 
     return (
-        <tr className="hover:bg-gray-50">
+        <tr className="hover:bg-gray-50 transition-colors">
             <td className="px-4 py-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                     {icon}
-                    <span>{label}</span>
+                    {/* Map label to tooltip term */}
+                    {label === 'Blood Group' ? (
+                        <MedicalTooltip term="Blood Compatibility" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'Age' ? (
+                        <MedicalTooltip term="Age" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'HLA Match' ? (
+                        <MedicalTooltip term="HLA" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'eGFR' ? (
+                        <MedicalTooltip term="eGFR" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'BMI' ? (
+                        <MedicalTooltip term="BMI" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : label === 'Health Status' ? (
+                        <MedicalTooltip term="Comorbidities" position="right">
+                            <span className="cursor-help border-b border-dotted border-gray-400">{label}</span>
+                        </MedicalTooltip>
+                    ) : (
+                        <span>{label}</span>
+                    )}
                     {recipient && <span className="text-xs text-gray-500">({recipient})</span>}
                 </div>
             </td>
@@ -351,7 +538,7 @@ const ComparisonRow = ({ label, icon, values, recipient, bestIndex = -1 }) => {
                 <td key={idx} className="px-4 py-3 text-center">
                     <div className="flex flex-col items-center gap-1">
                         {getIndicator(idx, value)}
-                        <span className="text-sm text-gray-900">{value}</span>
+                        <span className="text-sm text-gray-900 font-medium">{value}</span>
                     </div>
                 </td>
             ))}

@@ -134,7 +134,13 @@ export const getMe = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                qualifications: user.qualifications || '',
+                experience: user.experience || '',
+                specialization: user.specialization || '',
+                department: user.department || '',
+                contactNumber: user.contactNumber || '',
+                licenseNumber: user.licenseNumber || ''
             }
         });
     } catch (error) {
@@ -142,6 +148,67 @@ export const getMe = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Server error',
+            error: error.message
+        });
+    }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+export const updateProfile = async (req, res) => {
+    try {
+        const {
+            qualifications,
+            experience,
+            specialization,
+            department,
+            contactNumber,
+            licenseNumber
+        } = req.body;
+
+        // Find user
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Update fields
+        if (qualifications !== undefined) user.qualifications = qualifications;
+        if (experience !== undefined) user.experience = experience;
+        if (specialization !== undefined) user.specialization = specialization;
+        if (department !== undefined) user.department = department;
+        if (contactNumber !== undefined) user.contactNumber = contactNumber;
+        if (licenseNumber !== undefined) user.licenseNumber = licenseNumber;
+
+        // Save updated user
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile updated successfully',
+            data: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                qualifications: user.qualifications,
+                experience: user.experience,
+                specialization: user.specialization,
+                department: user.department,
+                contactNumber: user.contactNumber,
+                licenseNumber: user.licenseNumber
+            }
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during profile update',
             error: error.message
         });
     }

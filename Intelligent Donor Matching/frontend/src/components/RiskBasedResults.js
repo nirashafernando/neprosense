@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Trophy, Heart, AlertTriangle, Info, ChevronDown, ChevronUp } from "lucide-react";
+import MedicalTooltip from "./MedicalTooltip";
 
 const RiskBasedResults = ({ result, onRunAnother }) => {
     const [expandedDonor, setExpandedDonor] = useState(null);
@@ -48,11 +49,11 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
     return (
         <div className="space-y-6">
             {/* Header with Summary */}
-            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+            <div className="bg-gradient-to-r from-medical-600 to-teal-600 rounded-lg shadow-lg p-6 text-white">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold mb-2">Analysis Complete</h2>
-                        <p className="text-green-100">
+                        <p className="text-medical-50">
                             Evaluated <span className="font-bold">{totalEvaluated}</span> donor(s) |
                             Top recommendation available
                         </p>
@@ -62,7 +63,7 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
             </div>
 
             {/* Top 3 Donors - Highlighted */}
-            <div className="bg-white rounded-lg shadow-sm p-6 border-2 border-green-300">
+            <div className="bg-white rounded-lg shadow-sm p-6 border-2 border-medical-200">
                 <div className="flex items-center space-x-2 mb-4">
                     <Trophy className="w-6 h-6 text-yellow-500" />
                     <h3 className="text-xl font-bold text-gray-900">Top 3 Recommended Donors (Lowest Risk)</h3>
@@ -84,10 +85,10 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
                                 <div className="mt-2">
                                     <h4 className="font-bold text-lg text-gray-900 mb-2">{donor.donorId}</h4>
 
-                                    {/* Risk Probability */}
+                                    {/* Compatibility Score */}
                                     <div className="mb-3">
                                         <div className="flex justify-between text-sm mb-1">
-                                            <span className="font-medium text-gray-700">Risk Probability</span>
+                                            <span className="font-medium text-gray-700">Compatibility Score</span>
                                             <span className={`font-bold ${colors.text}`}>
                                                 {(donor.probability * 100).toFixed(1)}%
                                             </span>
@@ -158,7 +159,7 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
                                                     <div className="text-2xl font-bold text-gray-900">
                                                         {(pred.probability * 100).toFixed(1)}%
                                                     </div>
-                                                    <div className="text-xs text-gray-500">Risk Score</div>
+                                                    <div className="text-xs text-gray-500">Compatibility Score</div>
                                                 </div>
 
                                                 <div className={`px-4 py-2 rounded-full font-semibold text-sm border-2 ${colors.badge} ${colors.text}`}>
@@ -181,24 +182,51 @@ const RiskBasedResults = ({ result, onRunAnother }) => {
                                         <div className="bg-white rounded-lg border border-gray-200 p-4">
                                             <div className="flex items-center space-x-2 mb-3">
                                                 <Info className="w-5 h-5 text-blue-500" />
-                                                <h5 className="font-semibold text-gray-900">AI Explanation - Top Contributing Factors</h5>
+                                                <h5 className="font-semibold text-gray-900">
+                                                    <MedicalTooltip term="SHAP">
+                                                        AI Explanation - Top Contributing Factors
+                                                    </MedicalTooltip>
+                                                </h5>
                                             </div>
 
                                             <div className="space-y-2">
-                                                {pred.shapExplanation.map((exp, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                                                        <div className="flex-1">
-                                                            <span className="text-sm font-medium text-gray-700">{exp.feature}</span>
-                                                            <p className="text-xs text-gray-500 mt-1">{exp.description}</p>
+                                                {pred.shapExplanation.map((exp, idx) => {
+                                                    // Map feature names to tooltip terms
+                                                    const featureTooltipMap = {
+                                                        'HLA Match Score': 'HLA',
+                                                        'eGFR Level': 'eGFR',
+                                                        'BMI': 'BMI',
+                                                        'PRA Level': 'PRA',
+                                                        'Blood Group Compatibility': 'Blood Compatibility',
+                                                        'Donor Age': 'Age',
+                                                        'Recipient Age': 'Age'
+                                                    };
+                                                    
+                                                    const tooltipTerm = featureTooltipMap[exp.feature];
+                                                    
+                                                    return (
+                                                        <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                                                            <div className="flex-1">
+                                                                {tooltipTerm ? (
+                                                                    <MedicalTooltip term={tooltipTerm}>
+                                                                        <span className="text-sm font-medium text-gray-700 cursor-help border-b border-dotted border-gray-400">
+                                                                            {exp.feature}
+                                                                        </span>
+                                                                    </MedicalTooltip>
+                                                                ) : (
+                                                                    <span className="text-sm font-medium text-gray-700">{exp.feature}</span>
+                                                                )}
+                                                                <p className="text-xs text-gray-500 mt-1">{exp.description}</p>
+                                                            </div>
+                                                            <div className={`ml-4 px-3 py-1 rounded text-xs font-semibold ${exp.importance > 0
+                                                                    ? "bg-green-100 text-green-700"
+                                                                    : "bg-red-100 text-red-700"
+                                                                }`}>
+                                                                {exp.importance > 0 ? "↑" : "↓"} {Math.abs(exp.importance).toFixed(3)}
+                                                            </div>
                                                         </div>
-                                                        <div className={`ml-4 px-3 py-1 rounded text-xs font-semibold ${exp.importance > 0
-                                                                ? "bg-red-100 text-red-700"
-                                                                : "bg-green-100 text-green-700"
-                                                            }`}>
-                                                            {exp.importance > 0 ? "↑" : "↓"} {Math.abs(exp.importance).toFixed(3)}
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </div>

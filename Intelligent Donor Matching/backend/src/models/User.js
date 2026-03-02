@@ -31,6 +31,37 @@ const userSchema = new mongoose.Schema({
         default: 'Doctor',
         required: true
     },
+    // Professional profile fields
+    qualifications: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    experience: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    specialization: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    department: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    contactNumber: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    licenseNumber: {
+        type: String,
+        trim: true,
+        default: ''
+    },
     createdAt: {
         type: Date,
         default: Date.now

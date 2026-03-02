@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const isClinician = () => {
-        return user?.role === 'Clinician';
+        return user?.role === 'Doctor';
     };
 
     const isResearchViewer = () => {
@@ -129,7 +129,7 @@ export const ProtectedRoute = ({ children, clinicianOnly = false }) => {
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h2>
-                    <p className="text-gray-600">This page is only accessible to Clinicians.</p>
+                    <p className="text-gray-600">This page is only accessible to Doctors.</p>
                 </div>
             </div>
         );

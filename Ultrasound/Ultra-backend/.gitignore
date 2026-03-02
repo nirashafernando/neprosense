@@ -1,0 +1,4 @@
+venv/
+Ultrasound/Ultra-backend/venv/
+__pycache__/
+*.pyc
