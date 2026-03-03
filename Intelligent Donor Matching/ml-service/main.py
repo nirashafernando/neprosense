@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -21,11 +22,20 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Lifespan handler (replaces deprecated @app.on_event)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load model on startup, clean up on shutdown"""
+    load_model()
+    yield
+    # Shutdown: nothing to clean up
+
 # Initialize FastAPI app
 app = FastAPI(
     title="NephroSense ML Service",
     description="ML prediction service for kidney donor-recipient matching",
-    version="2.0.0"  # Upgraded for research-grade features
+    version="2.0.0",  # Upgraded for research-grade features
+    lifespan=lifespan
 )
 
 # Enable CORS
@@ -479,10 +489,7 @@ def mock_prediction(donor: DonorData, recipient: RecipientData) -> float:
     
     return risk
 
-@app.on_event("startup")
-async def startup_event():
-    """Load model on startup"""
-    load_model()
+# Startup is now handled by the lifespan context manager above
 
 @app.get("/")
 async def root():
