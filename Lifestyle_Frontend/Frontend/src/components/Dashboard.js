@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "./logo.png";
 import {
   Activity,
   TrendingUp,
-  Droplets,
-  Moon,
-  Utensils,
   Heart,
   ArrowRight,
   Calendar,
-  AlertCircle,
-  CheckCircle,
-  Users
+  Users,
+  Droplets,
+  AlertCircle 
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -22,37 +18,80 @@ const Dashboard = () => {
     totalEntries: 0,
     riskAssessments: 0,
     positiveTrends: 0,
-    activeUsers: 0,
+    activeUsers: 1, // Currently single user
   });
 
   const [recentEntries, setRecentEntries] = useState([]);
+  
   const [riskDistribution, setRiskDistribution] = useState({
-    low: 60,
-    moderate: 25,
-    high: 15,
+    low: 0,
+    moderate: 0,
+    high: 0,
   });
 
   useEffect(() => {
-    // Simulate data fetching
     const fetchDashboardData = async () => {
       setLoading(true);
-      setTimeout(() => {
-        setStats({
-          totalEntries: 1247,
-          riskAssessments: 89,
-          positiveTrends: 42,
-          activeUsers: 156,
-        });
-        
-        setRecentEntries([
-          { id: 1, user: "Patient #001", risk: "Low", date: "2024-03-15", hydration: "2.3L", activity: "45min" },
-          { id: 2, user: "Patient #002", risk: "Moderate", date: "2024-03-14", hydration: "1.8L", activity: "30min" },
-          { id: 3, user: "Patient #003", risk: "High", date: "2024-03-13", hydration: "1.2L", activity: "15min" },
-          { id: 4, user: "Patient #004", risk: "Low", date: "2024-03-12", hydration: "2.5L", activity: "60min" },
-        ]);
-        
+      try {
+        // Backend එකෙන් දත්ත ගන්නවා
+        const response = await fetch("http://localhost:5000/view-data");
+        const data = await response.json();
+
+        if (response.ok) {
+          // 1. Total Entries
+          const total = data.length;
+
+          // 2. Calculate Risk (Simple Logic for Demo: Low Water or High Calories = High Risk)
+          let low = 0, mod = 0, high = 0;
+          
+          const processedEntries = data.map((item, index) => {
+            // Backend keys mapping
+            const water = item["Water (L)"] || item.water;
+            const calories = item["Calories (kcal)"] || item.calories || item["Salt (g)"]; // Handling key variations
+            const sleep = item["Sleep (hrs)"] || item.sleep;
+            
+            // Determine Risk
+            let riskLevel = "Low";
+            if (water < 1.5 || calories > 2500) riskLevel = "High";
+            else if (water < 2.0 || calories > 2200) riskLevel = "Moderate";
+
+            if (riskLevel === "Low") low++;
+            else if (riskLevel === "Moderate") mod++;
+            else high++;
+
+            return {
+              id: item.ID || index,
+              user: `Entry #${item.ID}`,
+              risk: riskLevel,
+              date: new Date(item.Date || item.date).toLocaleDateString(),
+              hydration: `${water}L`,
+              activity: `${item["Activity (min)"] || item.activity}min`
+            };
+          });
+
+          // Update Stats
+          setStats({
+            totalEntries: total,
+            riskAssessments: total, // Assuming every entry is assessed
+            positiveTrends: Math.floor(low / (total || 1) * 100), // % of Low risk
+            activeUsers: 1,
+          });
+
+          // Update Risk Distribution %
+          setRiskDistribution({
+            low: total ? Math.round((low / total) * 100) : 0,
+            moderate: total ? Math.round((mod / total) * 100) : 0,
+            high: total ? Math.round((high / total) * 100) : 0,
+          });
+
+          // Show last 4 entries
+          setRecentEntries(processedEntries.slice(-4).reverse());
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      } finally {
         setLoading(false);
-      }, 1000);
+      }
     };
 
     fetchDashboardData();
@@ -69,7 +108,7 @@ const Dashboard = () => {
       iconColor: "text-blue-600",
     },
     {
-      title: "Risk Assessments",
+      title: "Assessments Done",
       value: stats.riskAssessments,
       icon: Activity,
       gradient: "from-purple-500 to-pink-600",
@@ -78,8 +117,8 @@ const Dashboard = () => {
       iconColor: "text-purple-600",
     },
     {
-      title: "Positive Trends",
-      value: stats.positiveTrends,
+      title: "Health Score",
+      value: `${stats.positiveTrends}%`,
       icon: TrendingUp,
       gradient: "from-green-500 to-emerald-600",
       bgColor: "bg-gradient-to-br from-green-50 to-emerald-50",
@@ -176,7 +215,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Risk Distribution */}
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Risk Distribution</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Risk Distribution (Real-time)</h2>
             <div className="space-y-4">
               {Object.entries(riskDistribution).map(([risk, percentage]) => (
                 <div key={risk} className="space-y-2">
@@ -201,6 +240,11 @@ const Dashboard = () => {
           {/* Recent Entries */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Lifestyle Entries</h2>
+            {loading ? (
+                 <p className="text-gray-500">Loading data...</p>
+            ) : recentEntries.length === 0 ? (
+                 <p className="text-gray-500">No entries found. Start tracking!</p>
+            ) : (
             <div className="space-y-3">
               {recentEntries.map((entry) => (
                 <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -226,12 +270,14 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
+            )}
           </div>
         </div>
 
         {/* Quick Actions */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+            {/* ... Keep the same Quick Actions buttons ... */}
+             <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <button
               onClick={() => navigate("/lifestyle-tracker")}
