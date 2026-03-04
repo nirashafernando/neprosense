@@ -60,7 +60,7 @@ const FrontPage = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-64 bg-gradient-to-b from-green-700 to-teal-700 text-white flex flex-col min-h-screen">
+      <div className="w-72 bg-gradient-to-b from-green-700 to-teal-700 text-white flex flex-col min-h-screen">
         {/* Logo */}
         <div className="p-6 border-b border-green-600">
   <div className="flex flex-col items-center space-y-3">
