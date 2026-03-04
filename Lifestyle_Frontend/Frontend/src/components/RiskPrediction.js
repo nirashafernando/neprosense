@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle, TrendingUp, ChevronDown, ChevronUp, Activit
 
 const RiskPrediction = () => {
   const [showDetails, setShowDetails] = useState(false);
-  
+
   const [predictionData] = useState({
     riskLevel: "MODERATE",
     probability: 65,
@@ -69,9 +69,9 @@ const RiskPrediction = () => {
             <p className="text-gray-600 mb-4">
               Based on your lifestyle data, there is a <span className="font-bold">{predictionData.probability}%</span> probability of CKD progression risk
             </p>
-            
+
             <div className="w-full max-w-md mx-auto bg-gray-200 rounded-full h-4 mb-2">
-              <div 
+              <div
                 className={`h-4 rounded-full transition-all duration-1000 ${colors.bg}`}
                 style={{ width: `${predictionData.probability}%` }}
               ></div>
@@ -90,17 +90,16 @@ const RiskPrediction = () => {
             <AlertTriangle className="w-6 h-6 text-yellow-500" />
             Key Risk Factors Identified
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {predictionData.factors.map((factor, index) => (
               <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-gray-900">{factor.name}</h3>
-                  <span className={`px-2 py-1 rounded text-xs font-bold ${
-                    factor.impact === "High" ? "bg-red-100 text-red-700" :
-                    factor.impact === "Medium" ? "bg-yellow-100 text-yellow-700" :
-                    "bg-blue-100 text-blue-700"
-                  }`}>
+                  <span className={`px-2 py-1 rounded text-xs font-bold ${factor.impact === "High" ? "bg-red-100 text-red-700" :
+                      factor.impact === "Medium" ? "bg-yellow-100 text-yellow-700" :
+                        "bg-blue-100 text-blue-700"
+                    }`}>
                     {factor.impact} Impact
                   </span>
                 </div>
@@ -139,7 +138,7 @@ const RiskPrediction = () => {
                 <CheckCircle className="w-6 h-6 text-green-500" />
                 Personalized Recommendations
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {predictionData.recommendations.map((rec, index) => (
                   <div key={index} className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -162,7 +161,7 @@ const RiskPrediction = () => {
                 <TrendingUp className="w-6 h-6 text-blue-500" />
                 Recommended Next Steps
               </h2>
-              
+
               <div className="space-y-3">
                 {predictionData.nextSteps.map((step, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
