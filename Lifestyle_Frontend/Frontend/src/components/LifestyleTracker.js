@@ -4,7 +4,7 @@ import { Save, Activity, Droplets, Moon, Utensils, AlertCircle } from "lucide-re
 const LifestyleTracker = () => {
   const [formData, setFormData] = useState({
     waterIntake: "",
-    saltIntake: "",
+    dailyCalories: "", // Changed from saltIntake to dailyCalories
     sleepHours: "",
     physicalActivity: "",
     foodItems: [],
@@ -35,24 +35,42 @@ const LifestyleTracker = () => {
     setSuccess(false);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      console.log("Form data submitted:", formData);
-      setSuccess(true);
-      setFormData({
-        waterIntake: "",
-        saltIntake: "",
-        sleepHours: "",
-        physicalActivity: "",
-        foodItems: [],
-        stressLevel: "low",
-        additionalNotes: "",
+      const response = await fetch("http://localhost:5000/api/save-entry", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
       });
 
-      setTimeout(() => setSuccess(false), 3000);
+      if (response.ok) {
+      
+        console.log("Form data saved to backend:", formData);
+        setSuccess(true);
+        
+      
+        setFormData({
+          waterIntake: "",
+          dailyCalories: "", // Reset dailyCalories
+          sleepHours: "",
+          physicalActivity: "",
+          foodItems: [],
+          stressLevel: "low",
+          additionalNotes: "",
+        });
+
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+      
+        console.error("Failed to save data");
+        alert("Failed to save data. Please make sure the Python backend is running.");
+      }
+
     } catch (error) {
-      console.error("Error saving data:", error);
+      
+      console.error("Error connecting to server:", error);
+      alert("Error connecting to server! Check if http://localhost:5000 is accessible.");
     } finally {
       setLoading(false);
     }
@@ -103,11 +121,11 @@ const LifestyleTracker = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <form onSubmit={handleSubmit}>
             <div className="space-y-6">
-              {/* Water Intake */}
+              {/* Water Intake & Calories (Modified Section) */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center space-x-3 mb-3">
                   <Droplets className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-semibold text-gray-800">Hydration</h3>
+                  <h3 className="font-semibold text-gray-800">Hydration & Nutrition</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -128,24 +146,26 @@ const LifestyleTracker = () => {
                     />
                     <p className="text-xs text-gray-500 mt-1">Recommended: 2-3 liters/day</p>
                   </div>
+                  
+                  {/* CHANGED: Salt Intake removed, Daily Calories added */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Salt Intake (Grams)
+                      Daily Calories
                     </label>
                     <input
                       type="number"
-                      name="saltIntake"
-                      value={formData.saltIntake}
+                      name="dailyCalories"
+                      value={formData.dailyCalories}
                       onChange={handleInputChange}
-                      step="0.1"
                       min="0"
-                      max="20"
+                      max="10000"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., 5.0"
+                      placeholder="e.g., 2000"
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">Recommended: &lt;5 grams/day</p>
+                    <p className="text-xs text-gray-500 mt-1">Recommended: Depends on diet plan</p>
                   </div>
+
                 </div>
               </div>
 
