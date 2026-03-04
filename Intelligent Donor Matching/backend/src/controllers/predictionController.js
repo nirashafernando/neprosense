@@ -5,6 +5,23 @@ import BatchPredictionRequest from '../models/BatchPredictionRequest.js';
 import Donor from '../models/Donor.js';
 import Recipient from '../models/Recipient.js';
 
+// Helper function to check blood group compatibility
+const isBloodGroupCompatible = (donorBloodGroup, recipientBloodGroup) => {
+    const compatibilityMap = {
+        'O-': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'], // Universal donor
+        'O+': ['O+', 'A+', 'B+', 'AB+'],
+        'A-': ['A-', 'A+', 'AB-', 'AB+'],
+        'A+': ['A+', 'AB+'],
+        'B-': ['B-', 'B+', 'AB-', 'AB+'],
+        'B+': ['B+', 'AB+'],
+        'AB-': ['AB-', 'AB+'],
+        'AB+': ['AB+'] // Universal recipient
+    };
+    
+    const compatibleRecipients = compatibilityMap[donorBloodGroup] || [];
+    return compatibleRecipients.includes(recipientBloodGroup);
+};
+
 // @desc    Submit donor-recipient matching prediction
 // @route   POST /api/predictions/predict
 // @access  Private (Clinician only)
@@ -236,6 +253,7 @@ export const predictBatch = async (req, res) => {
             systolicBP: recipient.systolicBP || 130,
             diastolicBP: recipient.diastolicBP || 85,
             dialysisYears: recipient.dialysisYears || 0,
+            pra: recipient.pra || 0,
             diabetes: recipient.diabetes || false,
             hypertension: recipient.hypertension || false,
             previousTransplants: recipient.previousTransplants || 0
@@ -397,6 +415,14 @@ export const getBatchPredictionDetails = async (req, res) => {
             .slice(0, 3)
             .map((pred, index) => {
                 const donor = batchPrediction.donorIds.find(d => d.donorId === pred.donorId);
+                const recipient = batchPrediction.recipientId;
+                
+                // Calculate blood group compatibility
+                const donorBloodGroup = donor?.bloodGroup || 'N/A';
+                const recipientBloodGroup = recipient?.bloodGroup || 'N/A';
+                const bloodCompatible = donorBloodGroup !== 'N/A' && recipientBloodGroup !== 'N/A' 
+                    ? isBloodGroupCompatible(donorBloodGroup, recipientBloodGroup)
+                    : (pred.parameters?.bloodGroupCompatible ?? true);
 
                 return {
                     rank: index + 1,
@@ -407,11 +433,13 @@ export const getBatchPredictionDetails = async (req, res) => {
                     riskCategory: pred.riskCategory,
                     shapExplanation: pred.shapExplanation || [],
                     parameters: {
-                        bloodGroup: donor?.bloodGroup || 'N/A',
+                        bloodGroup: donorBloodGroup,
+                        bloodGroupCompatible: bloodCompatible, // Calculated compatibility
                         age: donor?.age || 0,
                         bmi: donor?.bmi || 0,
                         gfr: donor?.gfr || 0,
                         hlaMatchScore: pred.parameters?.hlaMatchScore || pred.hlaMatchScore || 0,  // Read from parameters object
+                        hlaMatchLevel: pred.parameters?.hlaMatchLevel || 'Unknown', // From ML service
                         diabetes: donor?.diabetes || false,
                         hypertension: donor?.hypertension || false,
                         smoking: donor?.smoking || false
@@ -487,44 +515,6 @@ export const getBatchPredictionDetails = async (req, res) => {
     }
 };
 
-// @desc    Delete batch prediction by ID
-// @route   DELETE /api/predictions/batch/:id
-// @access  Private
-export const deleteBatchPrediction = async (req, res) => {
-    try {
-        const batchPrediction = await BatchPredictionRequest.findById(req.params.id);
-
-        if (!batchPrediction) {
-            return res.status(404).json({
-                success: false,
-                message: 'Batch prediction not found'
-            });
-        }
-
-        if (batchPrediction.user.toString() !== req.user._id.toString() && req.user.role !== 'Admin') {
-            return res.status(403).json({
-                success: false,
-                message: 'Not authorized to delete this prediction'
-            });
-        }
-
-        await BatchPredictionRequest.findByIdAndDelete(req.params.id);
-
-        res.status(200).json({
-            success: true,
-            message: 'Batch prediction deleted successfully'
-        });
-
-    } catch (error) {
-        console.error('Delete batch prediction error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to delete batch prediction',
-            error: error.message
-        });
-    }
-};
-
 // Helper function to generate human-readable explanations
 function generateMatchExplanation(topDonor, recipient) {
     const reasons = [];
@@ -584,4 +574,42 @@ function generateMatchExplanation(topDonor, recipient) {
 
     return reasons;
 }
+
+// @desc    Delete batch prediction
+// @route   DELETE /api/predictions/batch/:id
+// @access  Private
+export const deleteBatchPrediction = async (req, res) => {
+    try {
+        const batchPrediction = await BatchPredictionRequest.findById(req.params.id);
+
+        if (!batchPrediction) {
+            return res.status(404).json({
+                success: false,
+                message: 'Batch prediction not found'
+            });
+        }
+
+        // Authorization check - only the user who created it or admin can delete
+        if (batchPrediction.user.toString() !== req.user._id.toString() && req.user.role !== 'Admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to delete this prediction'
+            });
+        }
+
+        await BatchPredictionRequest.findByIdAndDelete(req.params.id);
+
+        res.status(200).json({
+            success: true,
+            message: 'Batch prediction deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete batch prediction error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete batch prediction',
+            error: error.message
+        });
+    }
+};
 
