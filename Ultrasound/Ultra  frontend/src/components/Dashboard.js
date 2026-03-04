@@ -34,8 +34,8 @@ const Dashboard = () => {
       title: "TOTAL ANALYSIS",
       value: stats.total,
       icon: Activity,
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-500",
+      iconBg: "bg-green-50",
+      iconColor: "text-green-500",
     },
     {
       title: "PREDICTIONS COMPLETED",
@@ -83,16 +83,16 @@ const Dashboard = () => {
           ))}
         </div>
 
-        <div className="bg-gradient-to-r from-[#2167f2] to-[#0792b3] rounded-[2.5rem] p-10 text-white relative overflow-hidden mb-12 shadow-2xl shadow-blue-100">
+        <div className="bg-gradient-to-r from-[#059669] to-[#047857] rounded-[2.5rem] p-10 text-white relative overflow-hidden mb-12 shadow-2xl shadow-green-100">
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between">
             <div>
               <h2 className="text-3xl font-black mb-3">Ready to Analyze Kidney Ultrasound?</h2>
-              <p className="text-blue-50 mb-8 max-w-lg font-medium opacity-90">
+              <p className="text-green-50 mb-8 max-w-lg font-medium opacity-90">
                 Upload ultrasound images for automated CKD stage prediction with AI segmentation
               </p>
               <button 
                 onClick={() => navigate("/analysis")}
-                className="bg-white text-[#2167f2] px-10 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-50 transition-all shadow-lg active:scale-95 group"
+                className="bg-white text-[#059669] px-10 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-green-50 transition-all shadow-lg active:scale-95 group"
               >
                 <Upload size={20} />
                 Start New Analysis
@@ -106,11 +106,11 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-            <div 
+            <div
               onClick={() => navigate("/analysis")}
               className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all text-center group cursor-pointer"
             >
-                <div className="bg-blue-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg group-hover:rotate-6 transition-transform">
+                <div className="bg-green-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg group-hover:rotate-6 transition-transform">
                     <Upload size={28} />
                 </div>
                 <h4 className="font-bold text-xl text-slate-800 mb-2">Start New Analysis</h4>
