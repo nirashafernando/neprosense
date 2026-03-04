@@ -3,237 +3,23 @@ import { AlertTriangle, CheckCircle, TrendingUp, ChevronDown, ChevronUp, Activit
 
 const RiskPrediction = () => {
   const [showDetails, setShowDetails] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [predictionData, setPredictionData] = useState({
-    riskLevel: "UNKNOWN",
-    probability: 0,
-    factors: [],
-    recommendations: [],
-    nextSteps: []
-  });
 
-  // Get the latest lifestyle data and make prediction
-  useEffect(() => {
-    const fetchPrediction = async () => {
-      setLoading(true);
-      try {
-        // First, get the latest lifestyle entry
-        const response = await fetch("http://localhost:5000/view-data");
-        const data = await response.json();
-
-        if (response.ok && data.length > 0) {
-          // Get the most recent entry
-          const latestEntry = data[data.length - 1];
-          
-          // Get user details (you might need to store these in localStorage or context)
-          // For demo purposes, using sample user data
-          const userData = {
-            age: 45,
-            gender: "Male",
-            height_cm: 170,
-            weight_kg: 75,
-            daily_steps: 5000,
-            sleep_hours: latestEntry["Sleep (hrs)"] || latestEntry.sleep || 6,
-            exercise_minutes: latestEntry["Activity (min)"] || latestEntry.activity || 20,
-            routine_adherence_score: 0.7,
-            goal: "maintain"
-          };
-
-          // Call the ML prediction endpoint
-          const predictionResponse = await fetch("http://localhost:5000/api/predict-diet", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(userData)
-          });
-
-          if (predictionResponse.ok) {
-            const mlResult = await predictionResponse.json();
-            
-            // Transform ML result into risk prediction format
-            const riskLevel = calculateRiskLevel(mlResult, latestEntry);
-            const probability = calculateProbability(mlResult, latestEntry);
-            const factors = identifyRiskFactors(latestEntry, mlResult);
-            
-            setPredictionData({
-              riskLevel: riskLevel,
-              probability: probability,
-              factors: factors,
-              recommendations: generateRecommendations(latestEntry, mlResult),
-              nextSteps: generateNextSteps(riskLevel)
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching prediction:", error);
-        setError("Failed to load prediction data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPrediction();
-  }, []);
-
-  // Helper functions to process ML results
-  const calculateRiskLevel = (mlResult, entry) => {
-    const bmi = mlResult.prediction.bmi;
-    const stage = mlResult.prediction.stage;
-    const water = entry["Water (L)"] || entry.water || 0;
-    const calories = entry["Calories (kcal)"] || entry.calories || 0;
-    const sleep = entry["Sleep (hrs)"] || entry.sleep || 0;
-    
-    // Count risk factors
-    let riskFactors = 0;
-    if (water < 1.5) riskFactors++;
-    if (calories > 2500) riskFactors++;
-    if (sleep < 6) riskFactors++;
-    if (bmi > 30) riskFactors += 2;
-    else if (bmi > 25) riskFactors++;
-    if (stage === "Advanced") riskFactors += 2;
-    else if (stage === "Intermediate") riskFactors++;
-    
-    if (riskFactors >= 4) return "HIGH";
-    if (riskFactors >= 2) return "MODERATE";
-    return "LOW";
-  };
-
-  const calculateProbability = (mlResult, entry) => {
-    const bmi = mlResult.prediction.bmi;
-    const stage = mlResult.prediction.stage;
-    const water = entry["Water (L)"] || entry.water || 0;
-    const calories = entry["Calories (kcal)"] || entry.calories || 0;
-    
-    let probability = 20; // Base risk
-    
-    // BMI contribution
-    if (bmi > 30) probability += 25;
-    else if (bmi > 25) probability += 15;
-    
-    // Stage contribution
-    if (stage === "Advanced") probability += 20;
-    else if (stage === "Intermediate") probability += 10;
-    
-    // Hydration contribution
-    if (water < 1.5) probability += 15;
-    else if (water < 2.0) probability += 5;
-    
-    // Calorie contribution
-    if (calories > 3000) probability += 15;
-    else if (calories > 2500) probability += 10;
-    
-    return Math.min(probability, 95);
-  };
-
-  const identifyRiskFactors = (entry, mlResult) => {
-    const factors = [];
-    const water = entry["Water (L)"] || entry.water || 0;
-    const calories = entry["Calories (kcal)"] || entry.calories || 0;
-    const sleep = entry["Sleep (hrs)"] || entry.sleep || 0;
-    const activity = entry["Activity (min)"] || entry.activity || 0;
-
-    // Low Hydration
-    if (water < 2.0) {
-      factors.push({
-        name: "Low Hydration",
-        impact: water < 1.5 ? "High" : "Medium",
-        description: `Water intake ${((2.5 - water) / 2.5 * 100).toFixed(0)}% below recommended`
-      });
-    }
-
-    // High Calorie Intake
-    if (calories > 2200) {
-      factors.push({
-        name: "High Calorie Intake",
-        impact: calories > 3000 ? "High" : "Medium",
-        description: `Calorie intake ${((calories - 2000) / 2000 * 100).toFixed(0)}% above recommended`
-      });
-    }
-
-    // Insufficient Sleep
-    if (sleep < 7) {
-      factors.push({
-        name: "Insufficient Sleep",
-        impact: sleep < 6 ? "High" : "Medium",
-        description: `Sleep duration ${((8 - sleep) / 8 * 100).toFixed(0)}% below optimal range`
-      });
-    }
-
-    // Limited Physical Activity
-    if (activity < 30) {
-      factors.push({
-        name: "Limited Physical Activity",
-        impact: activity < 15 ? "Medium" : "Low",
-        description: `Physical activity ${((30 - activity) / 30 * 100).toFixed(0)}% below recommended`
-      });
-    }
-
-    // BMI Factor from ML
-    if (mlResult.prediction.bmi > 30) {
-      factors.push({
-        name: "High BMI",
-        impact: "High",
-        description: `BMI ${mlResult.prediction.bmi.toFixed(1)} indicates obesity`
-      });
-    } else if (mlResult.prediction.bmi > 25) {
-      factors.push({
-        name: "Elevated BMI",
-        impact: "Medium",
-        description: `BMI ${mlResult.prediction.bmi.toFixed(1)} indicates overweight`
-      });
-    }
-
-    return factors;
-  };
-
-  const generateRecommendations = (entry, mlResult) => {
-    const recommendations = [];
-    const water = entry["Water (L)"] || entry.water || 0;
-    const calories = entry["Calories (kcal)"] || entry.calories || 0;
-    const sleep = entry["Sleep (hrs)"] || entry.sleep || 0;
-    const activity = entry["Activity (min)"] || entry.activity || 0;
-
-    // Hydration recommendations
-    if (water < 2.0) {
-      recommendations.push(`Increase water intake to ${(2.5 - water).toFixed(1)}L more daily (target: 2.5L)`);
-    } else {
-      recommendations.push("Maintain good hydration levels");
-    }
-
-    // Calorie recommendations from ML
-    if (mlResult.diet_plan) {
-      if (calories > mlResult.diet_plan.daily_calories + 200) {
-        recommendations.push(`Reduce daily calories by ${calories - mlResult.diet_plan.daily_calories} to reach ML target of ${mlResult.diet_plan.daily_calories}kcal`);
-      } else if (calories < mlResult.diet_plan.daily_calories - 200) {
-        recommendations.push(`Increase daily calories to reach ML target of ${mlResult.diet_plan.daily_calories}kcal`);
-      } else {
-        recommendations.push(`Follow ML diet plan: ${mlResult.diet_plan.protein_g}g protein, ${mlResult.diet_plan.carbs_g}g carbs, ${mlResult.diet_plan.fat_g}g fat`);
-      }
-    } else {
-      recommendations.push("Reduce salt consumption to under 5g per day");
-    }
-
-    // Sleep recommendations
-    if (sleep < 7) {
-      recommendations.push(`Aim for ${8 - sleep} more hours of quality sleep (target: 7-8 hours)`);
-    } else {
-      recommendations.push("Maintain good sleep habits");
-    }
-
-    // Activity recommendations
-    if (activity < 30) {
-      recommendations.push(`Incorporate ${30 - activity} more minutes of moderate activity daily`);
-    } else {
-      recommendations.push("Continue your active lifestyle");
-    }
-
-    return recommendations;
-  };
-
-  const generateNextSteps = (riskLevel) => {
-    const steps = [
+  const [predictionData] = useState({
+    riskLevel: "MODERATE",
+    probability: 65,
+    factors: [
+      { name: "Low Hydration", impact: "High", description: "Water intake 40% below recommended" },
+      { name: "High Salt Intake", impact: "Medium", description: "Exceeding daily salt limit by 60%" },
+      { name: "Insufficient Sleep", impact: "Medium", description: "Sleep duration below optimal range" },
+      { name: "Limited Physical Activity", impact: "Low", description: "Minimal daily movement" },
+    ],
+    recommendations: [
+      "Increase water intake to 2.5L daily",
+      "Reduce salt consumption to under 5g per day",
+      "Aim for 7-8 hours of quality sleep",
+      "Incorporate 30 minutes of moderate activity daily",
+    ],
+    nextSteps: [
       "Schedule follow-up in 2 weeks",
       "Consult with nutritionist for diet plan",
       "Monitor blood pressure regularly"
@@ -329,9 +115,9 @@ const RiskPrediction = () => {
             <p className="text-gray-600 mb-4">
               Based on your lifestyle data, there is a <span className="font-bold">{predictionData.probability}%</span> probability of CKD progression risk
             </p>
-            
+
             <div className="w-full max-w-md mx-auto bg-gray-200 rounded-full h-4 mb-2">
-              <div 
+              <div
                 className={`h-4 rounded-full transition-all duration-1000 ${colors.bg}`}
                 style={{ width: `${predictionData.probability}%` }}
               ></div>
@@ -350,24 +136,18 @@ const RiskPrediction = () => {
             <AlertTriangle className="w-6 h-6 text-yellow-500" />
             Key Risk Factors Identified
           </h2>
-          
-          {predictionData.factors.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No significant risk factors identified</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {predictionData.factors.map((factor, index) => (
-                <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900">{factor.name}</h3>
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      factor.impact === "High" ? "bg-red-100 text-red-700" :
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {predictionData.factors.map((factor, index) => (
+              <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-900">{factor.name}</h3>
+                  <span className={`px-2 py-1 rounded text-xs font-bold ${factor.impact === "High" ? "bg-red-100 text-red-700" :
                       factor.impact === "Medium" ? "bg-yellow-100 text-yellow-700" :
-                      "bg-blue-100 text-blue-700"
+                        "bg-blue-100 text-blue-700"
                     }`}>
-                      {factor.impact} Impact
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">{factor.description}</p>
+                    {factor.impact} Impact
+                  </span>
                 </div>
               ))}
             </div>
@@ -403,7 +183,7 @@ const RiskPrediction = () => {
                 <CheckCircle className="w-6 h-6 text-green-500" />
                 Personalized Recommendations
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {predictionData.recommendations.map((rec, index) => (
                   <div key={index} className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -426,7 +206,7 @@ const RiskPrediction = () => {
                 <TrendingUp className="w-6 h-6 text-blue-500" />
                 Recommended Next Steps
               </h2>
-              
+
               <div className="space-y-3">
                 {predictionData.nextSteps.map((step, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
