@@ -1,8 +1,8 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from contextlib import asynccontextmanager
 import joblib
 import pandas as pd
 import numpy as np
@@ -22,13 +22,15 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Lifespan handler (replaces deprecated @app.on_event)
+# Lifespan event handler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load model on startup, clean up on shutdown"""
+    """Handle startup and shutdown events"""
+    # Startup
     load_model()
     yield
-    # Shutdown: nothing to clean up
+    # Shutdown (cleanup if needed)
+    pass
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -73,7 +75,6 @@ class RecipientData(BaseModel):
     systolicBP: float = Field(..., ge=80, le=200, description="Recipient systolic BP (mmHg)")
     diastolicBP: float = Field(..., ge=40, le=130, description="Recipient diastolic BP (mmHg)")
     dialysisYears: float = Field(..., ge=0, le=30, description="Years on dialysis")
-    pra: Optional[float] = Field(0, ge=0, le=100, description="Panel Reactive Antibody percentage (0-100)")
     diabetes: bool = Field(..., description="Recipient diabetes status")
     hypertension: bool = Field(..., description="Recipient hypertension status")
     previousTransplants: int = Field(..., ge=0, le=5, description="Number of previous transplants")
@@ -168,7 +169,7 @@ def load_model():
     """Load the Random Forest model and initialize SHAP explainer"""
     global model, shap_explainer
     try:
-        # Load the optimized Random Forest model (sklearn Pipeline)
+        # Load the optimized Random Forest model
         model_path = Path(__file__).parent / 'model' / 'donor_match_model.pkl'
         
         if not model_path.exists():
@@ -180,25 +181,30 @@ def load_model():
         logger.info(f"✅ Model loaded successfully from: {model_path.name}")
         logger.info(f"   Model type: {type(model).__name__}")
         
-        # The model is a Pipeline with 'preprocessor' and 'classifier' steps
-        if hasattr(model, 'named_steps'):
-            classifier = model.named_steps.get('classifier')
-            if classifier:
-                logger.info(f"   Classifier: {type(classifier).__name__}")
-                logger.info(f"   Random Forest n_estimators: {getattr(classifier, 'n_estimators', 'N/A')}")
-                logger.info(f"   Random Forest max_depth: {getattr(classifier, 'max_depth', 'N/A')}")
+        # Try to get feature information if available
+        try:
+            if hasattr(model, 'feature_names_in_'):
+                logger.info(f"   Model features: {len(model.feature_names_in_)} features")
+            elif hasattr(model, 'n_features_in_'):
+                logger.info(f"   Model features: {model.n_features_in_} features")
+        except Exception as e:
+            logger.debug(f"Could not extract feature info: {e}")
         
         # Initialize SHAP if available
         if SHAP_AVAILABLE and model is not None:
             try:
-                # For sklearn Pipeline, we need the classifier step
-                if hasattr(model, 'named_steps') and 'classifier' in model.named_steps:
-                    actual_classifier = model.named_steps['classifier']
-                    shap_explainer = shap.TreeExplainer(actual_classifier)
-                    logger.info("✅ SHAP explainer initialized for Random Forest classifier")
+                # Get the actual model from pipeline if needed
+                if hasattr(model, 'named_steps'):
+                    # Try common step names for sklearn pipelines
+                    step_names = list(model.named_steps.keys())
+                    logger.info(f"   Pipeline steps: {step_names}")
+                    # Use the last step (usually the classifier)
+                    actual_model = model.named_steps[step_names[-1]]
                 else:
-                    shap_explainer = shap.TreeExplainer(model)
-                    logger.info("✅ SHAP explainer initialized")
+                    actual_model = model
+                
+                shap_explainer = shap.TreeExplainer(actual_model)
+                logger.info("✅ SHAP explainer initialized")
             except Exception as e:
                 logger.warning(f"⚠️  SHAP explainer initialization failed: {e}")
                 shap_explainer = None
@@ -206,64 +212,26 @@ def load_model():
         return model
     except Exception as e:
         logger.error(f"❌ Error loading model: {e}")
-        import traceback
-        traceback.print_exc()
         return None
 
-def generate_shap_explanation(features_df: pd.DataFrame, model_pipeline, shap_values: np.ndarray) -> List[dict]:
+def generate_shap_explanation(features_df: pd.DataFrame, shap_values: np.ndarray) -> List[dict]:
     """
     Generate human-readable SHAP explanations
     Returns top 5 most influential features
-    
-    Args:
-        features_df: Original feature DataFrame (before preprocessing)
-        model_pipeline: The sklearn Pipeline with preprocessor and classifier
-        shap_values: SHAP values from TreeExplainer (operates on transformed features)
     """
     try:
         if shap_values is None or len(shap_values) == 0:
             return []
         
-        # Get SHAP values for this prediction
-        # TreeExplainer returns shape (n_samples, n_features, n_classes) for binary classification
+        # Get feature names
+        feature_names = features_df.columns.tolist()
+        
+        # Get SHAP values for this prediction (class 1 - positive outcome)
         if len(shap_values.shape) == 3:
-            # Binary classification - take positive class (index 1)
-            shap_vals = shap_values[0, :, 1]
-        elif len(shap_values.shape) == 2:
-            shap_vals = shap_values[0]
+            # Multi-output format
+            shap_vals = shap_values[0][:, 1]
         else:
-            logger.warning(f"Unexpected SHAP values shape: {shap_values.shape}")
-            return []
-        
-        # Get transformed feature names from the pipeline
-        # The preprocessor expands categorical features via one-hot encoding
-        try:
-            if hasattr(model_pipeline, 'named_steps') and 'preprocessor' in model_pipeline.named_steps:
-                preprocessor = model_pipeline.named_steps['preprocessor']
-                
-                # Get numeric feature names (unchanged)
-                numeric_features = preprocessor.transformers_[0][2]  # ('num', transformer, columns)
-                feature_names = list(numeric_features)
-                
-                # Get categorical feature names (one-hot encoded)
-                if len(preprocessor.transformers_) > 1:
-                    cat_transformer = preprocessor.transformers_[1][1]  # ('cat', transformer, columns)
-                    if hasattr(cat_transformer, 'named_steps') and 'encoder' in cat_transformer.named_steps:
-                        encoder = cat_transformer.named_steps['encoder']
-                        if hasattr(encoder, 'get_feature_names_out'):
-                            cat_features = encoder.get_feature_names_out()
-                            feature_names.extend(cat_features)
-            else:
-                # Fallback: use original feature names
-                feature_names = features_df.columns.tolist()
-        except Exception as e:
-            logger.warning(f"Could not extract feature names from pipeline: {e}")
-            feature_names = [f"feature_{i}" for i in range(len(shap_vals))]
-        
-        # Ensure we have matching lengths
-        if len(feature_names) != len(shap_vals):
-            logger.warning(f"Feature name count ({len(feature_names)}) != SHAP value count ({len(shap_vals)})")
-            feature_names = [f"feature_{i}" for i in range(len(shap_vals))]
+            shap_vals = shap_values[0]
         
         # Create feature-importance pairs
         feature_importance = list(zip(feature_names, shap_vals))
@@ -286,35 +254,27 @@ def generate_shap_explanation(features_df: pd.DataFrame, model_pipeline, shap_va
         return explanations
     except Exception as e:
         logger.error(f"Error generating SHAP explanation: {e}")
-        import traceback
-        traceback.print_exc()
         return []
 
 def generate_feature_description(feature: str, importance: float) -> str:
     """Generate human-readable description for feature importance"""
     impact = "increases" if importance > 0 else "decreases"
     
-    # Handle one-hot encoded categorical features
-    if 'Donor_ABO_' in feature or 'Recipient_ABO_' in feature:
-        blood_type = feature.split('_')[-1]
-        if 'Donor' in feature:
-            return f"Donor blood type {blood_type} {impact} compatibility"
-        else:
-            return f"Recipient blood type {blood_type} {impact} compatibility"
-    
     descriptions = {
-        'Donor_Age': f"Donor age {impact} compatibility risk",
-        'Recipient_Age': f"Recipient age {impact} compatibility risk",
-        'Age_Gap': f"Age gap between donor and recipient {impact} risk",
-        'Donor_eGFR': f"Donor kidney function (GFR) {impact} success probability",
-        'Recipient_PRA': f"Recipient antibody sensitization {impact} rejection risk",
-        'Donor_DM': f"Donor diabetes status {impact} rejection risk",
-        'Donor_HTN': f"Donor hypertension {impact} compatibility",
-        'Dialysis_Years': f"Time on dialysis {impact} transplant urgency",
-        'Donor_BMI': f"Donor BMI {impact} surgical risk",
-        'Donor_Risk_Index': f"Composite donor health score {impact} overall risk",
-        'HLA_Match_Score': f"HLA tissue compatibility {impact} rejection risk (strongest factor)",
-        'ABO_Compatibility': f"Blood type compatibility {impact} safety (critical factor)",
+        'donor_age': f"Donor age {impact} compatibility risk",
+        'recipient_age': f"Recipient age {impact} compatibility risk",
+        'age_difference': f"Age gap between donor and recipient {impact} risk",
+        'donor_gfr': f"Donor kidney function (GFR) {impact} success probability",
+        'recipient_gfr': f"Recipient kidney function {impact} outcome",
+        'donor_diabetes': f"Donor diabetes status {impact} rejection risk",
+        'recipient_diabetes': f"Recipient diabetes {impact} transplant risk",
+        'donor_hypertension': f"Donor hypertension {impact} compatibility",
+        'recipient_hypertension': f"Recipient hypertension {impact} outcomes",
+        'recipient_dialysis_years': f"Time on dialysis {impact} transplant urgency",
+        'recipient_previous_transplants': f"Previous transplant history {impact} risk",
+        'donor_creatinine': f"Donor creatinine levels {impact} kidney health assessment",
+        'recipient_creatinine': f"Recipient creatinine {impact} baseline health",
+        'bmi_difference': f"BMI difference {impact} surgical risk",
     }
     
     return descriptions.get(feature, f"{feature} {impact} prediction")
@@ -335,34 +295,18 @@ def prepare_features(donor: DonorData, recipient: RecipientData) -> pd.DataFrame
     """
     Prepare features for model prediction matching the EXACT trained model schema.
     
-    CRITICAL: The model was trained with EXACTLY 14 features (no Donor_Smoking, no Previous_Transplants)
+    IMPORTANT: Trained model expects 15 features (Donor_Risk_Index was dropped during training):
+    ['Donor_Age', 'Donor_BMI', 'Donor_eGFR', 'Donor_HTN', 'Donor_DM', 'Donor_Smoking', 
+     'Donor_ABO', 'Recipient_Age', 'Recipient_ABO', 'Recipient_PRA', 'Dialysis_Years',
+     'Previous_Transplants', 'HLA_Match_Score', 'ABO_Compatibility', 'Age_Gap']
     
-    Model expects these 14 features in this order:
-    1. Donor_Age
-    2. Donor_BMI
-    3. Donor_eGFR
-    4. Donor_HTN
-    5. Donor_DM
-    6. Donor_ABO (categorical → one-hot encoded)
-    7. Recipient_Age
-    8. Recipient_ABO (categorical → one-hot encoded)
-    9. Recipient_PRA
-    10. Dialysis_Years
-    11. ABO_Compatibility
-    12. Age_Gap
-    13. Donor_Risk_Index
-    14. HLA_Match_Score
+    Uses RAW numeric features - no scaling (tree-based model)
     """
     
-    # Blood group encoding for categorical features (will be one-hot encoded)
-    donor_abo_raw = donor.bloodGroup[0] if donor.bloodGroup else 'O'  # Extract A, B, AB, O
-    recipient_abo_raw = recipient.bloodGroup[0] if recipient.bloodGroup else 'O'
-    
-    # Normalize AB blood group
-    if donor.bloodGroup.startswith('AB'):
-        donor_abo_raw = 'AB'
-    if recipient.bloodGroup.startswith('AB'):
-        recipient_abo_raw = 'AB'
+    # Blood group encoding (A=0, B=1, AB=2, O=3) - matching training data
+    blood_group_map = {'A+': 0, 'A-': 0, 'B+': 1, 'B-': 1, 'AB+': 2, 'AB-': 2, 'O+': 3, 'O-': 3}
+    donor_abo = blood_group_map.get(donor.bloodGroup, 3)
+    recipient_abo = blood_group_map.get(recipient.bloodGroup, 3)
     
     # ABO Compatibility (1 if compatible, 0 if not)
     abo_compatibility = 1 if check_blood_group_compatibility(donor.bloodGroup, recipient.bloodGroup) else 0
@@ -375,57 +319,41 @@ def prepare_features(donor: DonorData, recipient: RecipientData) -> pd.DataFrame
     recipient_hla = getattr(recipient, 'hlaTyping', '') or ''
     hla_match_score = calculate_hla_match_score(donor_hla, recipient_hla)
     
-    # Recipient PRA (Panel Reactive Antibody) - Use actual PRA value if provided
-    # PRA represents sensitization level (0-100%)
-    recipient_pra = float(getattr(recipient, 'pra', 0) or 0)
+    # Recipient PRA calculation (0-100) - Panel Reactive Antibody
+    # Estimate based on sensitization factors
+    recipient_pra = min(100, recipient.previousTransplants * 30 + (20 if recipient.diabetes else 0))
     
-    # Donor Risk Index - Composite score of donor health
-    # NOTE: The training data Donor_Risk_Index calculation does NOT include smoking
-    # It only includes: age, BMI, GFR, hypertension, and diabetes
-    age_factor = (donor.age - 20) / 30  # Normalized age risk (0-1.3 for ages 20-60)
-    bmi_factor = abs(donor.bmi - 24) / 10  # Deviation from ideal BMI (~24)
-    gfr_factor = max(0, (120 - donor.gfr) / 60)  # Lower GFR = higher risk
-    comorbidity_factor = (int(donor.hypertension) * 0.5) + (int(donor.diabetes) * 0.8)
-    donor_risk_index = 1.0 + age_factor + bmi_factor + gfr_factor + comorbidity_factor
-    
-    # Create feature dictionary matching TRAINED MODEL schema (14 features ONLY)
-    # ⚠️ CRITICAL: DO NOT include Donor_Smoking or Previous_Transplants - model was NOT trained with these!
+    # Create feature dictionary with EXACT names and order from training
+    # NOTE: Donor_Risk_Index is NOT included (dropped during training)
     features = {
-        # Donor features (5 numeric + 1 categorical)
         'Donor_Age': float(donor.age),
         'Donor_BMI': float(donor.bmi),
         'Donor_eGFR': float(donor.gfr),
         'Donor_HTN': int(donor.hypertension),
         'Donor_DM': int(donor.diabetes),
-        'Donor_ABO': donor_abo_raw,  # Categorical: will be one-hot encoded to 4 features
-        
-        # Recipient features (3 numeric + 1 categorical)
+        'Donor_Smoking': int(donor.smoking),
+        'Donor_ABO': int(donor_abo),
         'Recipient_Age': float(recipient.age),
-        'Recipient_ABO': recipient_abo_raw,  # Categorical: will be one-hot encoded to 4 features
+        'Recipient_ABO': int(recipient_abo),
         'Recipient_PRA': float(recipient_pra),
         'Dialysis_Years': float(recipient.dialysisYears),
-        
-        # Rule-based features (2 numeric)
-        'ABO_Compatibility': int(abo_compatibility),
+        'Previous_Transplants': int(recipient.previousTransplants),
         'HLA_Match_Score': int(hla_match_score),
-        
-        # Derived features (2 numeric)
-        'Age_Gap': float(age_gap),
-        'Donor_Risk_Index': float(donor_risk_index)
+        'ABO_Compatibility': int(abo_compatibility),
+        'Age_Gap': float(age_gap)
     }
     
-    # Create DataFrame with exact column order the model expects
+    # Create DataFrame with columns in exact order
     df = pd.DataFrame([features])
     
-    # Reorder columns to match training order
+    # Ensure column order matches training data (15 features, no Donor_Risk_Index)
     column_order = [
-        'Donor_Age', 'Donor_BMI', 'Donor_eGFR', 'Donor_HTN', 'Donor_DM', 'Donor_ABO',
-        'Recipient_Age', 'Recipient_ABO', 'Recipient_PRA', 'Dialysis_Years',
-        'ABO_Compatibility', 'Age_Gap', 'Donor_Risk_Index', 'HLA_Match_Score'
+        'Donor_Age', 'Donor_BMI', 'Donor_eGFR', 'Donor_HTN', 'Donor_DM', 'Donor_Smoking',
+        'Donor_ABO', 'Recipient_Age', 'Recipient_ABO', 'Recipient_PRA', 'Dialysis_Years',
+        'Previous_Transplants', 'HLA_Match_Score', 'ABO_Compatibility', 'Age_Gap'
     ]
-    df = df[column_order]
     
-    return df
+    return df[column_order]
 
 
 
@@ -471,7 +399,9 @@ def mock_prediction(donor: DonorData, recipient: RecipientData) -> float:
     elif donor.gfr < 90:
         base_risk += 0.05  # Slightly reduced = +5% risk
     
-    # Note: Recipient sensitization (PRA) and previous transplants not used in this model
+    # Recipient sensitization (previous transplants increase risk)
+    if recipient.previousTransplants > 0:
+        base_risk += 0.08 * recipient.previousTransplants  # +8% per previous transplant
     
     # Ensure risk is between 0 and 1
     risk = max(0.0, min(1.0, base_risk))
@@ -483,13 +413,15 @@ def mock_prediction(donor: DonorData, recipient: RecipientData) -> float:
     print(f"Age Diff: {age_diff} years")
     print(f"Donor Health: DM={donor.diabetes}, HTN={donor.hypertension}, Smoking={donor.smoking}")
     print(f"Donor GFR: {donor.gfr}")
+    print(f"Previous Transplants: {recipient.previousTransplants}")
     print(f"Final Risk Probability: {risk:.2f} ({risk*100:.0f}%)")
     print(f"Compatibility Score: {(1-risk)*100:.0f}%")
     print(f"===================================\n")
     
     return risk
 
-# Startup is now handled by the lifespan context manager above
+# Startup event moved to lifespan handler above
+# @app.on_event("startup") - DEPRECATED, now using lifespan
 
 @app.get("/")
 async def root():
@@ -523,11 +455,6 @@ async def predict(request: PredictionRequest):
         # Check blood group compatibility first
         blood_compatible = check_blood_group_compatibility(donor.bloodGroup, recipient.bloodGroup)
         
-        # Calculate HLA match score for boost logic
-        donor_hla = getattr(donor, 'hlaTyping', '') or ''
-        recipient_hla = getattr(recipient, 'hlaTyping', '') or ''
-        hla_match_score = calculate_hla_match_score(donor_hla, recipient_hla)
-        
         shap_explanation = []
         
         if model is not None:
@@ -538,23 +465,14 @@ async def predict(request: PredictionRequest):
             # Generate SHAP explanation if available
             if shap_explainer is not None:
                 try:
-                    # Transform features for SHAP (TreeExplainer operates on transformed space)
-                    X_transformed = model.named_steps['preprocessor'].transform(features_df)
-                    shap_values = shap_explainer.shap_values(X_transformed)
-                    shap_explanation = generate_shap_explanation(features_df, model, shap_values)
+                    shap_values = shap_explainer.shap_values(features_df)
+                    shap_explanation = generate_shap_explanation(features_df, shap_values)
                 except Exception as e:
                     logger.warning(f"SHAP explanation failed: {e}")
         else:
             # Use mock prediction
             probability = mock_prediction(donor, recipient)
             logger.info("Using mock prediction (model not loaded)")
-        
-        # POST-PROCESSING BOOST: Perfect HLA match + blood compatibility
-        # If HLA 6/6 and blood compatible, boost score by 28%
-        if hla_match_score == 6 and blood_compatible:
-            original_prob = probability
-            probability = min(probability + 0.28, 0.98)  # Boost by 28%, cap at 98%
-            logger.info(f"✨ HLA 6/6 PERFECT MATCH BOOST: {original_prob:.4f} → {probability:.4f} (+28%)")
         
         # Apply blood group compatibility constraint
         if not blood_compatible:
@@ -687,20 +605,11 @@ async def predict_batch(request: BatchPredictionRequest):
                     print(f"  Suitability Probability: {probability:.4f} ({probability*100:.1f}%)")
                     print(f"{'='*70}\n")
                     
-                    # POST-PROCESSING BOOST: Perfect HLA match + blood compatibility
-                    # If HLA 6/6 and blood compatible, boost score by 28%
-                    if hla_match_score == 6 and blood_compatible:
-                        original_prob = probability
-                        probability = min(probability + 0.28, 0.98)  # Boost by 28%, cap at 98%
-                        print(f"✨ HLA 6/6 PERFECT MATCH BOOST: {original_prob:.4f} → {probability:.4f} (+28%)\n")
-                    
                     # Generate SHAP explanation if available
                     if shap_explainer is not None:
                         try:
-                            # Transform features for SHAP
-                            X_transformed = model.named_steps['preprocessor'].transform(features_df)
-                            shap_values = shap_explainer.shap_values(X_transformed)
-                            shap_explanation = generate_shap_explanation(features_df, model, shap_values)
+                            shap_values = shap_explainer.shap_values(features_df)
+                            shap_explanation = generate_shap_explanation(features_df, shap_values)
                         except Exception as e:
                             logger.warning(f"SHAP explanation failed for {donor_id}: {e}")
                 except Exception as e:
