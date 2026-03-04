@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AlertTriangle, CheckCircle, TrendingUp, ChevronDown, ChevronUp, Activity } from "lucide-react";
 
 const RiskPrediction = () => {
@@ -22,18 +22,64 @@ const RiskPrediction = () => {
     nextSteps: [
       "Schedule follow-up in 2 weeks",
       "Consult with nutritionist for diet plan",
-      "Monitor blood pressure regularly",
-    ]
-  });
+      "Monitor blood pressure regularly"
+    ];
+
+    if (riskLevel === "HIGH") {
+      steps.unshift("Consult with nephrologist immediately");
+      steps.push("Consider dietary counseling");
+      steps.push("Daily blood pressure monitoring");
+    } else if (riskLevel === "MODERATE") {
+      steps.unshift("Schedule nutritionist consultation");
+      steps.push("Weekly weight tracking");
+    } else {
+      steps.unshift("Continue healthy habits");
+      steps.push("Monthly check-in");
+    }
+
+    return steps;
+  };
 
   const getRiskColor = (level) => {
     switch (level) {
-      case "LOW": return { bg: "bg-green-500", border: "border-green-500", text: "text-green-600" };
-      case "MODERATE": return { bg: "bg-yellow-500", border: "border-yellow-500", text: "text-yellow-600" };
-      case "HIGH": return { bg: "bg-red-500", border: "border-red-500", text: "text-red-600" };
-      default: return { bg: "bg-gray-500", border: "border-gray-500", text: "text-gray-600" };
+      case "LOW": return { bg: "bg-green-500", border: "border-green-500", text: "text-green-600", light: "bg-green-50" };
+      case "MODERATE": return { bg: "bg-yellow-500", border: "border-yellow-500", text: "text-yellow-600", light: "bg-yellow-50" };
+      case "HIGH": return { bg: "bg-red-500", border: "border-red-500", text: "text-red-600", light: "bg-red-50" };
+      default: return { bg: "bg-gray-500", border: "border-gray-500", text: "text-gray-600", light: "bg-gray-50" };
     }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Analyzing lifestyle data with ML model...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const colors = getRiskColor(predictionData.riskLevel);
 
@@ -52,7 +98,7 @@ const RiskPrediction = () => {
                   CKD Risk Prediction Results
                 </h1>
                 <p className="text-gray-600">
-                  AI-powered lifestyle risk assessment based on daily habits
+                  ML-powered lifestyle risk assessment based on your latest data
                 </p>
               </div>
             </div>
@@ -103,10 +149,9 @@ const RiskPrediction = () => {
                     {factor.impact} Impact
                   </span>
                 </div>
-                <p className="text-sm text-gray-600">{factor.description}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Toggle Detailed Insights */}
@@ -132,7 +177,7 @@ const RiskPrediction = () => {
         {/* Detailed Insights Section */}
         {showDetails && (
           <div className="space-y-6 animate-fadeIn">
-            {/* Recommendations */}
+            {/* Personalized Recommendations */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <CheckCircle className="w-6 h-6 text-green-500" />
@@ -155,7 +200,7 @@ const RiskPrediction = () => {
               </div>
             </div>
 
-            {/* Next Steps */}
+            {/* Recommended Next Steps */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-blue-500" />
@@ -174,7 +219,7 @@ const RiskPrediction = () => {
               </div>
             </div>
 
-            {/* Disclaimer */}
+            {/* Clinical Decision Support Tool Disclaimer */}
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-r-lg">
               <div className="flex">
                 <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5 mr-3" />
