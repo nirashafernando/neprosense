@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { BarChart3, FlaskConical } from "lucide-react";
+import logo from './logo.png';
 
 const FrontPage = () => {
   const navigate = useNavigate();
@@ -40,14 +41,12 @@ const FrontPage = () => {
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-64 bg-green-600 text-white min-h-screen flex flex-col">
-        {/* Logo */}
-        <div className="p-6">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-              <span className="text-green-600 font-bold text-sm">N</span>
-            </div>
-            <span className="text-xl font-bold">NephroSense</span>
+      <div className="flex flex-col w-64 min-h-screen text-white bg-green-600">
+      {/* Logo */}
+      <div className="flex flex-col items-center m-3 space-y-3">
+          <img src={logo} alt="NephroSense Logo" className="object-contain w-30 h-30" />
+          <div className="text-center">
+            <p className="text-lg font-bold text-white">UrineTestImage Analysis</p>
           </div>
         </div>
 

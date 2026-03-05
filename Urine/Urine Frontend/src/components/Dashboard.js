@@ -101,11 +101,11 @@ const UrineDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-8">
-      <div className="mx-auto max-w-7xl">
-      
-        <div className="mb-10 text-center">
-          <h1 className="mb-2 font-sans text-3xl font-bold text-slate-800">
-            Welcome to UroSense Dashboard
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-slate-800 mb-2 font-sans">
+            Welcome to NephroSense Dashboard
           </h1>
           <p className="font-medium text-slate-500">
             AI-powered urine strip pad detection & automated reporting

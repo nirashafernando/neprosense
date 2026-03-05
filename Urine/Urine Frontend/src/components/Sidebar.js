@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import logo from './logo.png';
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -89,16 +90,19 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="w-64 bg-green-600 text-white min-h-screen flex flex-col">
+    <div className="flex flex-col w-64 min-h-screen text-white bg-green-600">
       {/* Logo */}
-      <div className="p-6">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-            <span className="text-green-600 font-bold text-sm">N</span>
-          </div>
-          <span className="text-xl font-bold">NephroSense</span>
-        </div>
-      </div>
+       <div className="flex flex-col items-center m-3 space-y-3">
+    {/* Logo Image */}
+    <img 
+      src={logo}
+      alt="NephroSense Logo"
+      className="object-contain w-30 h-30"
+    />
+    <div className="text-center">
+      <p className="text-lg font-bold text-white">UltrasoundImage Analysis</p>
+    </div>
+  </div>
 
       {/* Navigation Menu */}
       <nav className="flex-1 px-4">
