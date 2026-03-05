@@ -107,13 +107,13 @@ const UrineDashboard = () => {
           <h1 className="text-3xl font-bold text-slate-800 mb-2 font-sans">
             Welcome to NephroSense Dashboard
           </h1>
-          <p className="text-slate-500 font-medium">
+          <p className="font-medium text-slate-500">
             AI-powered urine strip pad detection & automated reporting
           </p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 gap-6 mb-10 md:grid-cols-2 lg:grid-cols-4">
           {statsCards.map((stat, index) => (
             <div
               key={index}
@@ -123,7 +123,7 @@ const UrineDashboard = () => {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                   {stat.title}
                 </p>
-                <h3 className="text-3xl font-black text-slate-800 tracking-tight">
+                <h3 className="text-3xl font-black tracking-tight text-slate-800">
                   {stat.value}
                 </h3>
               </div>
@@ -136,27 +136,27 @@ const UrineDashboard = () => {
 
         {/* Hero */}
         <div className="bg-gradient-to-r from-[#2167f2] to-[#0792b3] rounded-[2.5rem] p-10 text-white relative overflow-hidden mb-12 shadow-2xl shadow-blue-100">
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between">
+          <div className="relative z-10 flex flex-col items-center justify-between md:flex-row">
             <div>
-              <h2 className="text-3xl font-black mb-3">Ready to Analyze a Urine Strip?</h2>
-              <p className="text-blue-50 mb-8 max-w-lg font-medium opacity-90">
+              <h2 className="mb-3 text-3xl font-black">Ready to Analyze a Urine Strip?</h2>
+              <p className="max-w-lg mb-8 font-medium text-blue-50 opacity-90">
                 Upload a strip image. The model detects 10 pads and generates readings
                 (Nitrite, Glucose, Protein, pH, etc.).
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <button
                   onClick={() => navigate("/analysis")}
                   className="bg-white text-[#2167f2] px-10 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-50 transition-all shadow-lg active:scale-95 group"
                 >
                   <Upload size={20} />
                   Start New Test
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                 </button>
 
                 <button
                   onClick={() => navigate("/reports")}
-                  className="bg-white/10 border border-white/20 px-10 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-white/15 transition-all active:scale-95"
+                  className="flex items-center gap-3 px-10 py-4 font-black transition-all border bg-white/10 border-white/20 rounded-2xl hover:bg-white/15 active:scale-95"
                 >
                   <BarChart3 size={20} />
                   View Reports
@@ -164,34 +164,34 @@ const UrineDashboard = () => {
               </div>
             </div>
 
-            <div className="hidden md:block opacity-20 transform translate-x-10 translate-y-10">
+            <div className="hidden transform translate-x-10 translate-y-10 md:block opacity-20">
               <Droplet size={280} strokeWidth={1} />
             </div>
           </div>
         </div>
 
         {/* Quick actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 gap-8 mb-12 md:grid-cols-3">
           <div
             onClick={() => navigate("/analysis")}
             className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all text-center group cursor-pointer"
           >
-            <div className="bg-blue-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg group-hover:rotate-6 transition-transform">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 text-white transition-transform bg-blue-500 shadow-lg rounded-2xl group-hover:rotate-6">
               <Upload size={28} />
             </div>
-            <h4 className="font-bold text-xl text-slate-800 mb-2">Start New Test</h4>
-            <p className="text-sm text-slate-400 font-medium">Upload urine strip image & analyze</p>
+            <h4 className="mb-2 text-xl font-bold text-slate-800">Start New Test</h4>
+            <p className="text-sm font-medium text-slate-400">Upload urine strip image & analyze</p>
           </div>
 
           <div
             onClick={() => navigate("/reports")}
             className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all text-center group cursor-pointer"
           >
-            <div className="bg-emerald-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg group-hover:rotate-6 transition-transform">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 text-white transition-transform shadow-lg bg-emerald-500 rounded-2xl group-hover:rotate-6">
               <BarChart3 size={28} />
             </div>
-            <h4 className="font-bold text-xl text-slate-800 mb-2">Reports</h4>
-            <p className="text-sm text-slate-400 font-medium">
+            <h4 className="mb-2 text-xl font-bold text-slate-800">Reports</h4>
+            <p className="text-sm font-medium text-slate-400">
               {analysisHistory.length > 0
                 ? `${analysisHistory.length} Reports available`
                 : "No reports available yet"}
@@ -199,11 +199,11 @@ const UrineDashboard = () => {
           </div>
 
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all text-center">
-            <div className="bg-fuchsia-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 text-white shadow-lg bg-fuchsia-500 rounded-2xl">
               <TrendingUp size={28} />
             </div>
-            <h4 className="font-bold text-xl text-slate-800 mb-2">Model Snapshot</h4>
-            <p className="text-sm text-slate-400 font-medium">
+            <h4 className="mb-2 text-xl font-bold text-slate-800">Model Snapshot</h4>
+            <p className="text-sm font-medium text-slate-400">
               Avg Confidence: {stats.avgConfidence}% • Abnormal Flags: {stats.positives}
             </p>
           </div>
@@ -211,17 +211,17 @@ const UrineDashboard = () => {
 
         {/* Recent tests */}
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-10">
-          <div className="p-8 border-b border-slate-50 text-center">
+          <div className="p-8 text-center border-b border-slate-50">
             <h3 className="text-2xl font-black text-slate-800">Recent Tests</h3>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
+            <p className="mt-1 text-sm font-bold tracking-widest uppercase text-slate-400">
               Latest urine strip analyses
             </p>
           </div>
 
-          <div className="overflow-x-auto px-4">
+          <div className="px-4 overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="text-slate-400 border-b border-slate-50">
+                <tr className="border-b text-slate-400 border-slate-50">
                   <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">
                     Patient / Sample
                   </th>
@@ -245,10 +245,10 @@ const UrineDashboard = () => {
                   latest.map((item) => {
                     const badge = badgeFor(item);
                     return (
-                      <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <tr key={item.id} className="transition-colors hover:bg-slate-50/50 group">
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center font-bold">
+                            <div className="flex items-center justify-center w-10 h-10 font-bold bg-slate-100 text-slate-500 rounded-xl">
                               <Users size={18} />
                             </div>
                             <div className="flex flex-col">
@@ -303,7 +303,7 @@ const UrineDashboard = () => {
                         <td className="px-8 py-5 text-right">
                           <button
                             onClick={() => navigate(`/report/${item.id}`)}
-                            className="p-2 bg-slate-50 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                            className="p-2 transition-all bg-slate-50 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl"
                             title="View report"
                           >
                             <Eye size={20} />
@@ -317,12 +317,12 @@ const UrineDashboard = () => {
                     <td colSpan="5" className="py-24 text-center">
                       <div className="flex flex-col items-center gap-4">
                         <Activity size={48} className="text-slate-200" />
-                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
+                        <p className="text-xs font-bold tracking-widest uppercase text-slate-400">
                           No test records found
                         </p>
                         <button
                           onClick={() => navigate("/analysis")}
-                          className="text-blue-500 font-black text-sm hover:underline"
+                          className="text-sm font-black text-blue-500 hover:underline"
                         >
                           START YOUR FIRST TEST →
                         </button>
