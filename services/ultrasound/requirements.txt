@@ -2,4 +2,4 @@ flask
 flask-cors
 opencv-python-headless
 numpy
-tensorflow
+tensorflow>=2.18.0
