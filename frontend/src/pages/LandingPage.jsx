@@ -97,7 +97,7 @@ const LandingPage = () => {
             bgGradient: "from-medical-50 to-teal-50",
             iconBg: "bg-medical-100",
             iconColor: "text-medical-600",
-            route: user ? "/app/make-prediction" : "/login?redirect=/app/make-prediction"
+            route: "/app/dashboard"
         }
     ];
 

@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import api from '../lib/axios';
 
 const AuthContext = createContext(null);
@@ -42,6 +43,11 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('user', JSON.stringify(userData));
                 setUser(userData);
                 return { success: true };
+            } else {
+                return {
+                    success: false,
+                    message: response.data.message || 'Login failed'
+                };
             }
         } catch (error) {
             return {
@@ -66,6 +72,11 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('user', JSON.stringify(userData));
                 setUser(userData);
                 return { success: true };
+            } else {
+                return {
+                    success: false,
+                    message: response.data.message || 'Registration failed'
+                };
             }
         } catch (error) {
             return {
@@ -118,10 +129,10 @@ export const AuthProvider = ({ children }) => {
 // Protected Route Wrapper
 export const ProtectedRoute = ({ children, clinicianOnly = false }) => {
     const { user, isClinician } = useAuth();
+    const location = useLocation();
 
     if (!user) {
-        window.location.href = '/home';
-        return null;
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     if (clinicianOnly && !isClinician()) {

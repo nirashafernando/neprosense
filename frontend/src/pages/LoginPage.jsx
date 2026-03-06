@@ -10,7 +10,7 @@ const LoginPage = () => {
     
     // Get the redirect path from URL query parameters
     const searchParams = new URLSearchParams(location.search);
-    const redirectPath = searchParams.get('redirect') || '/dashboard';
+    const redirectPath = searchParams.get('redirect') || '/home';
     
     const [formData, setFormData] = useState({
         email: '',
@@ -35,11 +35,9 @@ const LoginPage = () => {
         const result = await login(formData.email, formData.password);
 
         if (result.success) {
-            // Redirect to the specified path or default to dashboard
-            navigate(redirectPath);
-            // Get the redirect path from location state, or use default
-            const from = location.state?.from?.pathname || '/app/dashboard';
-            navigate(from, { replace: true }); // Use replace to prevent back button issues
+            // Go back to wherever the user came from, or default to landing
+            const from = location.state?.from?.pathname || redirectPath;
+            navigate(from, { replace: true });
         } else {
             setError(result.message);
             setLoading(false);
