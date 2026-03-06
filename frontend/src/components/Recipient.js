@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { User, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../lib/axios";
@@ -9,12 +9,7 @@ import FieldError, { inputClass } from "./FieldError";
 // ─── Validators ──────────────────────────────────────────────────────────────
 
 const validate = {
-  recipientId: (v) => {
-    if (!v?.trim()) return "Recipient ID is required";
-    if (!/^[A-Z0-9\-]+$/i.test(v)) return "Only letters, numbers, and hyphens allowed";
-    if (v.trim().length < 3) return "Recipient ID must be at least 3 characters";
-    return null;
-  },
+  // recipientId is auto-generated — no manual validation needed
   name: (v) => {
     if (!v?.trim()) return "Full name is required";
     if (v.trim().length < 2) return "Name must be at least 2 characters";
@@ -130,7 +125,7 @@ const validate = {
 };
 
 const REQUIRED_FIELDS = [
-  "recipientId", "name", "age", "weight", "height",
+  "name", "age", "weight", "height",
   "location", "gender", "bloodGroup", "hlaTyping",
   "waitingTime", "urgencyScore",
 ];
@@ -167,6 +162,26 @@ const AddRecipient = () => {
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [touched, setTouched] = useState({});
+
+  // ── Auto-generate Recipient ID ──────────────────────────────────────────────
+  useEffect(() => {
+    const generateId = async () => {
+      try {
+        const res = await api.get("/recipients");
+        const recipients = res.data?.data || res.data || [];
+        // Extract numeric parts from existing IDs like R001, R012
+        const nums = recipients
+          .map(r => parseInt((r.recipientId || "").replace(/^R/i, ""), 10))
+          .filter(n => !isNaN(n));
+        const next = nums.length > 0 ? Math.max(...nums) + 1 : 13;
+        const nextId = `R${String(next).padStart(3, "0")}`;
+        setFormData(prev => ({ ...prev, recipientId: nextId }));
+      } catch {
+        setFormData(prev => ({ ...prev, recipientId: "R013" }));
+      }
+    };
+    generateId();
+  }, []);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -280,15 +295,14 @@ const AddRecipient = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="recipientId" className="block text-sm font-medium text-gray-700 mb-1">
-                    Recipient ID <span className="text-rose-500">*</span>
+                    Recipient ID <span className="text-xs text-gray-400 font-normal">(auto-generated)</span>
                   </label>
                   <input
                     type="text" id="recipientId" name="recipientId"
-                    value={formData.recipientId} onChange={handleInputChange} onBlur={handleBlur}
-                    className={ic("recipientId")} placeholder="e.g. R001 or REC-001"
-                    disabled={isSubmitting}
+                    value={formData.recipientId}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 font-mono cursor-not-allowed"
                   />
-                  <FieldError message={fieldErrors.recipientId} />
                 </div>
 
                 <div>

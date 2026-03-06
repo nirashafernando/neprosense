@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Heart, ArrowLeft, User, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../lib/axios";
@@ -9,12 +9,7 @@ import FieldError, { inputClass } from "./FieldError";
 // ─── Validators ──────────────────────────────────────────────────────────────
 
 const validate = {
-  donorId: (v) => {
-    if (!v?.trim()) return "Donor ID is required";
-    if (!/^[A-Z0-9\-]+$/i.test(v)) return "Only letters, numbers, and hyphens allowed";
-    if (v.trim().length < 3) return "Donor ID must be at least 3 characters";
-    return null;
-  },
+  // donorId is auto-generated — no manual validation needed
   name: (v) => {
     if (!v?.trim()) return "Full name is required";
     if (v.trim().length < 2) return "Name must be at least 2 characters";
@@ -93,7 +88,7 @@ const validate = {
   },
 };
 
-const REQUIRED_FIELDS = ["donorId", "name", "age", "weight", "height", "location", "gender", "bloodGroup", "hlaTyping"];
+const REQUIRED_FIELDS = ["name", "age", "weight", "height", "location", "gender", "bloodGroup", "hlaTyping"];
 
 const validateAll = (formData) => {
   const errors = {};
@@ -125,6 +120,26 @@ const AddDonor = () => {
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [touched, setTouched] = useState({});
+
+  // ── Auto-generate Donor ID ──────────────────────────────────────────────────
+  useEffect(() => {
+    const generateId = async () => {
+      try {
+        const res = await api.get("/donors");
+        const donors = res.data?.data || res.data || [];
+        // Extract numeric parts from existing IDs like D001, D012
+        const nums = donors
+          .map(d => parseInt((d.donorId || "").replace(/^D/i, ""), 10))
+          .filter(n => !isNaN(n));
+        const next = nums.length > 0 ? Math.max(...nums) + 1 : 13;
+        const nextId = `D${String(next).padStart(3, "0")}`;
+        setFormData(prev => ({ ...prev, donorId: nextId }));
+      } catch {
+        setFormData(prev => ({ ...prev, donorId: "D013" }));
+      }
+    };
+    generateId();
+  }, []);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -236,15 +251,14 @@ const AddDonor = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="donorId" className="block text-sm font-medium text-gray-700 mb-1">
-                    Donor ID <span className="text-rose-500">*</span>
+                    Donor ID <span className="text-xs text-gray-400 font-normal">(auto-generated)</span>
                   </label>
                   <input
                     type="text" id="donorId" name="donorId"
-                    value={formData.donorId} onChange={handleInputChange} onBlur={handleBlur}
-                    className={ic("donorId")} placeholder="e.g. D001 or DON-001"
-                    disabled={isSubmitting}
+                    value={formData.donorId}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 font-mono cursor-not-allowed"
                   />
-                  <FieldError message={fieldErrors.donorId} />
                 </div>
 
                 <div>
