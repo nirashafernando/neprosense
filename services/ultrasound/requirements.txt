@@ -2,4 +2,4 @@ flask
 flask-cors
 opencv-python-headless
 numpy
-ultralytics
+tensorflow; python_version < "3.13"
