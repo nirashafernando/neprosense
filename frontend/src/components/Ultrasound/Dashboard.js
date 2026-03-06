@@ -158,55 +158,59 @@ const Dashboard = () => {
             </div>
           </div>
 
-        <div className="grid grid-cols-1 gap-6 mb-10 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {statsCards.map((stat, index) => (
-            <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition-transform hover:scale-[1.02]">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.title}</p>
-                <h3 className="text-3xl font-black tracking-tight text-slate-800">{stat.value}</h3>
+            <div key={index} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-lg ${stat.iconBg}`}>
+                  <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+                </div>
               </div>
-              <div className={`${stat.iconBg} p-3 rounded-xl`}>
-                <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
-              </div>
+              <h3 className="text-gray-600 text-sm font-medium mb-1">{stat.title}</h3>
+              <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="bg-gradient-to-r from-medical-800 via-medical-700 to-medical-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden mb-12 shadow-2xl shadow-medical-900/20">
-          <div className="relative z-10 flex flex-col items-center justify-between md:flex-row">
-            <div>
-              <h2 className="mb-3 text-3xl font-black">Ready to Analyze Kidney Ultrasound?</h2>
-              <p className="max-w-lg mb-8 font-medium text-medical-50 opacity-90">
+        <div className="bg-gradient-to-br from-medical-600 via-medical-700 to-teal-600 rounded-xl shadow-xl p-6 md:p-8 mb-6 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
+          <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex-1">
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">Ready to Analyze Kidney Ultrasound?</h2>
+              <p className="text-medical-100 mb-6 text-sm md:text-base">
                 Upload ultrasound images for automated CKD stage prediction with AI segmentation
               </p>
-              <button 
+              <button
                 onClick={() => navigate("/ultrasound/analysis")}
-                className="bg-white text-medical-700 px-10 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-medical-50 transition-all shadow-lg active:scale-95 group"
+                className="bg-white text-medical-700 px-6 py-3 rounded-lg font-bold hover:bg-medical-50 transition-all shadow-lg flex items-center gap-2 text-base group"
               >
-                <Upload size={20} />
+                <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 Start New Analysis
-                <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
-            <div className="hidden transform translate-x-10 translate-y-10 md:block opacity-20">
-                <Activity size={280} strokeWidth={1} />
+            <div className="hidden md:block">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 shadow-2xl">
+                <Activity className="w-20 h-20 text-white opacity-80" strokeWidth={2} />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mb-10">
-          <div className="flex flex-col items-center justify-between gap-4 p-8 border-b border-slate-50 md:flex-row">
+        <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden mb-6">
+          <div className="flex flex-col items-center justify-between gap-4 p-5 border-b border-slate-100 md:flex-row">
             <div className="flex-1"></div>
             <div className="flex-1 text-center shrink-0">
-              <h3 className="text-2xl font-black text-slate-800">Recent Analysis</h3>
-              <p className="mt-1 text-sm font-bold tracking-widest uppercase text-slate-400">Latest kidney ultrasound predictions</p>
+              <h3 className="text-lg font-bold text-slate-800">Recent Analysis</h3>
+              <p className="mt-0.5 text-xs text-slate-500">Latest kidney ultrasound predictions</p>
             </div>
             <div className="flex justify-end flex-1">
-              <button 
-                onClick={clearAllHistory} 
-                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-500 hover:text-red-600 rounded-xl hover:bg-red-100 transition-all font-bold text-[10px] uppercase tracking-widest"
+              <button
+                onClick={clearAllHistory}
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-500 hover:text-red-600 rounded-lg hover:bg-red-100 transition-all font-semibold text-xs"
               >
-                <Trash2 size={16} /> Clear All History
+                <Trash2 size={14} /> Clear All History
               </button>
             </div>
           </div>

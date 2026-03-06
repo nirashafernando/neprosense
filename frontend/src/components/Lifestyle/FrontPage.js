@@ -63,22 +63,21 @@ const FrontPage = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-72 bg-gradient-to-b from-green-700 to-teal-700 text-white flex flex-col min-h-screen">
+      <div className="w-72 bg-medical-700 text-white flex flex-col min-h-screen">
         {/* Logo */}
-        <div className="p-6 border-b border-green-600">
-          <div className="flex flex-col items-center space-y-3">
-            {/* Logo Image */}
-            <button onClick={() => navigate("/home")} className="cursor-pointer">
-              <img 
+        <div className="p-6 border-b border-medical-600">
+          <button onClick={() => navigate("/home")} className="w-full cursor-pointer">
+            <div className="flex flex-col items-center space-y-3 hover:opacity-80 transition-opacity">
+              <img
                 src={logo}
-                alt="NephroSense Logo"
+                alt="NephroSense Lifestyle Logo"
                 className="w-30 h-30 object-contain"
               />
-            </button>
-            <div className="text-center">
-              <p className="text-white text-lg font-bold">Lifestyle Management</p>
+              <div className="text-center">
+                <p className="text-white text-lg font-bold">Lifestyle Management</p>
+              </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Navigation Menu */}
@@ -90,8 +89,8 @@ const FrontPage = () => {
                   onClick={() => navigate(item.path)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                     item.active
-                      ? "bg-green-600 text-white shadow-lg"
-                      : "text-green-100 hover:bg-green-600 hover:text-white"
+                      ? "bg-medical-600 text-white shadow-lg"
+                      : "text-medical-100 hover:bg-medical-600 hover:text-white"
                   }`}
                 >
                   {item.icon}
@@ -103,16 +102,16 @@ const FrontPage = () => {
         </nav>
 
         {/* User Info at Bottom */}
-        <div className="p-6 border-t border-green-600 bg-green-800">
+        <div className="p-6 border-t border-medical-600 bg-medical-800">
           <div className="flex items-center space-x-3">
-            <div className="bg-green-600 p-2 rounded-full">
+            <div className="bg-medical-600 p-2 rounded-full">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
             <div className="flex-1">
-              <p className="text-white text-sm font-medium">Dr. John Doe</p>
-              <p className="text-green-200 text-xs">Nephrologist</p>
+              <p className="text-white text-sm font-medium">{user?.name || 'User'}</p>
+              <p className="text-medical-200 text-xs">{user?.role || 'Role'}</p>
             </div>
           </div>
         </div>
