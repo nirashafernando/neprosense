@@ -18,22 +18,19 @@ const LifestyleSummary = () => {
     trends: []
   });
 
-  // Fetch Data from Backend
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("http://localhost:5000/view-data");
+        const response = await fetch("http://127.0.0.1:5000/view-data");
         const data = await response.json();
 
         if (response.ok && data.length > 0) {
-          // Calculate Averages
           const total = data.length;
           const totalWater = data.reduce((acc, curr) => acc + (curr["Water (L)"] || curr.water || 0), 0);
           const totalCalories = data.reduce((acc, curr) => acc + (curr["Calories (kcal)"] || curr.calories || 0), 0);
           const totalSleep = data.reduce((acc, curr) => acc + (curr["Sleep (hrs)"] || curr.sleep || 0), 0);
           const totalActivity = data.reduce((acc, curr) => acc + (curr["Activity (min)"] || curr.activity || 0), 0);
 
-          // Map Trends for Table
           const trends = data.map(item => ({
             date: new Date(item.Date || item.date).toLocaleDateString(),
             water: item["Water (L)"] || item.water,
@@ -63,17 +60,15 @@ const LifestyleSummary = () => {
   }, []);
 
   const handleExport = () => {
-    // Check if there is data to export
     if (!summaryData.trends || summaryData.trends.length === 0) {
       alert("No data available to export!");
       return;
     }
 
-    console.log("Exporting Data:", summaryData.trends); // Console එකේ Data බලාගන්න
+    console.log("Exporting Data:", summaryData.trends);
 
     const doc = new jsPDF();
 
-    // 1. Header Design (Green Background)
     doc.setFillColor(34, 197, 94); 
     doc.rect(0, 0, 210, 40, 'F');
     
@@ -86,13 +81,11 @@ const LifestyleSummary = () => {
     doc.setFont("helvetica", "normal");
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: "center" });
 
-    // 2. Summary Cards Section
     doc.setTextColor(50, 50, 50);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.text("Weekly Averages", 14, 55);
 
-    // Helper to draw stat boxes
     const drawStatBox = (x, title, value, unit, color) => {
         doc.setDrawColor(200, 200, 200);
         doc.setFillColor(250, 250, 250);
@@ -108,13 +101,11 @@ const LifestyleSummary = () => {
         doc.text(`${value} ${unit}`, x + 20, 82, { align: "center" });
     };
 
-    // Ensure values exist before printing
     drawStatBox(14, "Avg. Water", summaryData.averages.water || 0, "L", [59, 130, 246]); 
     drawStatBox(60, "Avg. Calories", summaryData.averages.calories || 0, "kcal", [234, 179, 8]);
     drawStatBox(106, "Avg. Sleep", summaryData.averages.sleep || 0, "hrs", [99, 102, 241]);
     drawStatBox(152, "Avg. Activity", summaryData.averages.activity || 0, "min", [34, 197, 94]);
 
-    // 3. Detailed Table
     doc.setTextColor(50, 50, 50);
     doc.setFontSize(14);
     doc.text("Daily Detailed Breakdown", 14, 105);
@@ -190,9 +181,6 @@ const LifestyleSummary = () => {
           </div>
         </div>
 
-        {/* ... Rest of your UI (Averages and Table) stays same ... */}
-        {/* Just make sure to use the exact code below for the table section if you changed it */}
-        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
             { title: "Avg. Water Intake", value: summaryData.averages.water, unit: "L", color: "bg-blue-500", icon: "💧" },

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom'; // Add useLocation
 import { useAuth } from '../contexts/AuthContext';
 import { Heart, Mail, Lock, AlertCircle, LogIn } from 'lucide-react';
 
 const LoginPage = () => {
     const navigate = useNavigate();
+    const location = useLocation(); // Add this to get the redirect path
     const { login } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
@@ -18,7 +19,7 @@ const LoginPage = () => {
             ...formData,
             [e.target.name]: e.target.value
         });
-        setError(''); // Clear error on input change
+        setError('');
     };
 
     const handleSubmit = async (e) => {
@@ -29,16 +30,19 @@ const LoginPage = () => {
         const result = await login(formData.email, formData.password);
 
         if (result.success) {
-            navigate('/dashboard');
+            // Get the redirect path from location state, or use default
+            const from = location.state?.from?.pathname || '/app/dashboard';
+            navigate(from, { replace: true }); // Use replace to prevent back button issues
         } else {
             setError(result.message);
             setLoading(false);
         }
     };
 
+    // Rest of your component remains exactly the same...
     return (
         <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-50 via-medical-50 to-teal-50 py-12 px-4">
-            {/* Background decorative elements */}
+            {/* Your existing JSX - NO CHANGES NEEDED */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-40 -right-40 w-80 h-80 bg-medical-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
                 <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse delay-1000"></div>
