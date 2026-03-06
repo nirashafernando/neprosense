@@ -23,6 +23,12 @@ import Reports from "./components/Reports";
 import AdminProfile from "./components/AdminProfile";
 import "./App.css";
 
+import UrineTestAnalysis from "./components/Urine/UrineTestAnalysis";
+import { AnalysisProvider } from "./components/Urine/AnalysisContext";
+import UrineDashboard from "./components/Urine/Dashboard"; 
+import UrineFrontpage from "./components/Urine/FrontPage";  
+
+
 function App() {
   return (
     <AuthProvider>
@@ -58,6 +64,9 @@ function App() {
               <Route path="reports" element={<Reports />} />
               <Route path="admin-profile" element={<AdminProfile />} />
 
+               
+            
+
               {/* Doctor-only routes */}
               <Route
                 path="donor"
@@ -87,6 +96,20 @@ function App() {
                 path="detailedMatchInformation"
                 element={<DetailedMatchInformation />}
               />
+            </Route>
+
+            <Route
+              path="/urine"
+              element={
+                <AnalysisProvider>
+                  <UrineFrontpage />
+                </AnalysisProvider>
+              }
+            >
+              <Route index element={<UrineDashboard />} />
+              <Route path="urinedashboard" element={<UrineDashboard />} />
+              <Route path="urineanalysis" element={<UrineTestAnalysis />} />
+              
             </Route>
 
             {/* Legacy redirects for backward compatibility */}
