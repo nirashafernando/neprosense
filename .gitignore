@@ -39,6 +39,8 @@ env/
 .env.development.local
 .env.test.local
 .env.production.local
+# Keep .env.example files so new clones know what vars are needed
+!.env.example
 
 # ─── IDEs / Editors ───────────────────────────────────────────────────────────
 .vscode/
