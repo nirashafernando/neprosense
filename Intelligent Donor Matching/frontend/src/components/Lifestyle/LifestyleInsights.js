@@ -14,24 +14,16 @@ const LifestyleInsights = () => {
   useEffect(() => {
     const fetchLatestData = async () => {
         try {
-            const response = await fetch("http://localhost:5000/view-data");
+            const response = await fetch("http://127.0.0.1:5000/view-data");
             const data = await response.json();
 
             if (response.ok && data.length > 0) {
-                // Get the last entry (Latest)
                 const latest = data[data.length - 1];
                 
-                // Map backend keys
                 const water = latest["Water (L)"] || latest.water;
                 const calories = latest["Calories (kcal)"] || latest.calories;
                 const sleep = latest["Sleep (hrs)"] || latest.sleep;
                 const activity = latest["Activity (min)"] || latest.activity;
-
-                // Calculate Improvements
-                const calcStatus = (val, rec, type) => {
-                    if (type === 'calories') return val > rec ? 'above' : 'normal';
-                    return val >= rec ? 'good' : 'below';
-                };
 
                 setInsights({
                     hydration: {
@@ -73,8 +65,7 @@ const LifestyleInsights = () => {
     fetchLatestData();
   }, []);
 
-  // ... (Keep the rest of helper functions and UI exactly same) ...
-  const getStatusColor = (status, value) => {
+  const getStatusColor = (status) => {
     if (status === "below" || status === "above") return "text-red-600";
     return "text-green-600";
   };
@@ -110,15 +101,14 @@ const LifestyleInsights = () => {
               <h3 className="font-bold text-gray-900">{title}</h3>
               <div className="flex items-center space-x-2">
                 {StatusIcon}
-                <span className={`text-sm font-medium ${getStatusColor(data.status, category)}`}>
+                <span className={`text-sm font-medium ${getStatusColor(data.status)}`}>
                   {data.status === "good" ? "On Target" : "Needs Attention"}
                 </span>
               </div>
             </div>
           </div>
         </div>
-        {/* ... Rest of card content ... */}
-         <div className="space-y-4">
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
               <p className="text-2xl font-bold text-gray-900">{data.current}</p>
@@ -142,7 +132,7 @@ const LifestyleInsights = () => {
               ></div>
             </div>
           </div>
-           <div className="pt-3 border-t border-gray-200">
+          <div className="pt-3 border-t border-gray-200">
             <p className="text-sm text-gray-600 leading-relaxed">{data.tips}</p>
           </div>
         </div>
@@ -158,7 +148,6 @@ const LifestyleInsights = () => {
             <p>Based on your latest entry</p>
         </div>
 
-        {/* Insights Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <InsightCard title="Hydration" data={insights.hydration} category="hydration" />
           <InsightCard title="Daily Calories" data={insights.dailyCalories} category="dailyCalories" />

@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";  // Changed from ../contexts to ../../contexts
 import { Activity, TrendingUp, Droplets, Moon } from "lucide-react";
 import logo from "./logo.png";
 
 const FrontPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -13,42 +15,42 @@ const FrontPage = () => {
     {
       icon: <Activity className="w-5 h-5" />,
       label: "Dashboard",
-      path: "/",
-      active: location.pathname === "/" || location.pathname === "/dashboard",
+      path: "/lifestyle/dashboard",
+      active: location.pathname === "/lifestyle/dashboard",
     },
     {
       icon: <TrendingUp className="w-5 h-5" />,
       label: "Lifestyle Data Summary",
-      path: "/lifestyle-data-summary",
-      active: location.pathname === "/lifestyle-data-summary",
+      path: "/lifestyle/summary",
+      active: location.pathname === "/lifestyle/summary",
     },
     {
       icon: <Droplets className="w-5 h-5" />,
       label: "Lifestyle Tracker",
-      path: "/lifestyle-tracker",
-      active: location.pathname === "/lifestyle-tracker",
+      path: "/lifestyle/tracker",
+      active: location.pathname === "/lifestyle/tracker",
     },
     {
       icon: <Moon className="w-5 h-5" />,
       label: "Lifestyle Insights",
-      path: "/lifestyle-insights",
-      active: location.pathname === "/lifestyle-insights",
+      path: "/lifestyle/insights",
+      active: location.pathname === "/lifestyle/insights",
     },
     {
       icon: <Activity className="w-5 h-5" />,
       label: "Risk Prediction Results",
-      path: "/lifestyle-risk-prediction",
-      active: location.pathname === "/lifestyle-risk-prediction",
+      path: "/lifestyle/risk-prediction",
+      active: location.pathname === "/lifestyle/risk-prediction",
     },
   ];
 
   const getCurrentPageTitle = () => {
     const currentPath = location.pathname;
-    if (currentPath === "/" || currentPath === "/dashboard") return "Dashboard";
-    if (currentPath === "/lifestyle-data-summary") return "Lifestyle Data Summary";
-    if (currentPath === "/lifestyle-tracker") return "Lifestyle Tracker";
-    if (currentPath === "/lifestyle-insights") return "Lifestyle Insights";
-    if (currentPath === "/lifestyle-risk-prediction") return "Risk Prediction Results";
+    if (currentPath === "/lifestyle/dashboard") return "Dashboard";
+    if (currentPath === "/lifestyle/summary") return "Lifestyle Data Summary";
+    if (currentPath === "/lifestyle/tracker") return "Lifestyle Tracker";
+    if (currentPath === "/lifestyle/insights") return "Lifestyle Insights";
+    if (currentPath === "/lifestyle/risk-prediction") return "Risk Prediction Results";
     return "NephroSense Lifestyle";
   };
 
@@ -63,18 +65,18 @@ const FrontPage = () => {
       <div className="w-72 bg-gradient-to-b from-green-700 to-teal-700 text-white flex flex-col min-h-screen">
         {/* Logo */}
         <div className="p-6 border-b border-green-600">
-  <div className="flex flex-col items-center space-y-3">
-    {/* Logo Image */}
-    <img 
-      src={logo} // CHANGED TO USE IMPORTED LOGO
-      alt="NephroSense Logo"
-      className="w-30 h-30 object-contain"
-    />
-    <div className="text-center">
-      <p className="text-white text-lg font-bold">Lifestyle Management</p>
-    </div>
-  </div>
-</div>
+          <div className="flex flex-col items-center space-y-3">
+            {/* Logo Image */}
+            <img 
+              src={logo}
+              alt="NephroSense Logo"
+              className="w-30 h-30 object-contain"
+            />
+            <div className="text-center">
+              <p className="text-white text-lg font-bold">Lifestyle Management</p>
+            </div>
+          </div>
+        </div>
 
         {/* Navigation Menu */}
         <nav className="flex-1 px-4 py-6">
@@ -205,7 +207,7 @@ const FrontPage = () => {
                     <div className="border-t border-gray-200 mt-2">
                       <button
                         onClick={() => {
-                          // Handle logout
+                          logout();
                         }}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
