@@ -1,17 +1,23 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart, User, Mail, Lock, Stethoscope, CheckCircle, AlertCircle } from 'lucide-react';
+import { Heart, Mail, Lock, User, AlertCircle, UserPlus } from 'lucide-react';
 
 const RegisterPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { register } = useAuth();
+    
+    // Get the redirect path from URL query parameters
+    const searchParams = new URLSearchParams(location.search);
+    const redirectPath = searchParams.get('redirect') || '/dashboard';
+
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'Doctor'
+        role: 'Research Viewer'
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -21,21 +27,20 @@ const RegisterPage = () => {
             ...formData,
             [e.target.name]: e.target.value
         });
-        setError(''); // Clear error on input change
+        setError('');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
-        // Validation
-        if (formData.password.length < 6) {
-            setError('Password must be at least 6 characters long');
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match');
             return;
         }
 
-        if (formData.password !== formData.confirmPassword) {
-            setError('Passwords do not match');
+        if (formData.password.length < 6) {
+            setError('Password must be at least 6 characters');
             return;
         }
 
@@ -49,12 +54,14 @@ const RegisterPage = () => {
         );
 
         if (result.success) {
-            navigate('/dashboard');
+            navigate(redirectPath);
         } else {
             setError(result.message);
             setLoading(false);
         }
     };
+
+    const isUrineRedirect = redirectPath === '/urine';
 
     return (
         <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-50 via-medical-50 to-teal-50 py-12 px-4">
@@ -67,19 +74,26 @@ const RegisterPage = () => {
             <div className="max-w-md w-full relative z-10">
                 {/* Logo & Title */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-medical-600 to-teal-600 rounded-2xl mb-4 shadow-lg transform hover:scale-105 transition-transform">
+                    <button
+                        onClick={() => navigate('/home')}
+                        className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-medical-600 to-teal-600 rounded-2xl mb-4 shadow-lg transform hover:scale-105 transition-transform"
+                    >
                         <Heart className="w-10 h-10 text-white" />
-                    </div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-medical-700 to-teal-700 bg-clip-text text-transparent mb-2">NephroSense</h1>
-                    <p className="text-slate-600 font-medium">Kidney Transplant Decision Support System</p>
+                    </button>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-medical-700 to-teal-700 bg-clip-text text-transparent mb-2">Join NephroSense</h1>
+                    <p className="text-slate-600 font-medium">
+                        {isUrineRedirect 
+                            ? 'Create account to access Urine Analysis' 
+                            : 'Create your healthcare professional account'}
+                    </p>
                 </div>
 
-                {/* Registration Form */}
+                {/* Register Form */}
                 <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">
                     <div className="flex items-center justify-center mb-6">
                         <div className="flex items-center space-x-3">
-                            <Stethoscope className="w-7 h-7 text-medical-600" />
-                            <h2 className="text-2xl font-bold text-slate-800">Doctor Registration</h2>
+                            <UserPlus className="w-7 h-7 text-medical-600" />
+                            <h2 className="text-2xl font-bold text-slate-800">Register</h2>
                         </div>
                     </div>
 
@@ -90,7 +104,7 @@ const RegisterPage = () => {
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label htmlFor="name" className="block text-sm font-semibold text-slate-700 mb-2 flex items-center space-x-2">
                                 <User className="w-4 h-4 text-medical-600" />
@@ -103,8 +117,8 @@ const RegisterPage = () => {
                                 value={formData.name}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-500 focus:border-medical-500 focus:bg-white transition-all duration-200 text-slate-800 placeholder-slate-400"
-                                placeholder="Dr. John Smith"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-500 focus:border-medical-500 focus:bg-white transition-all duration-200"
+                                placeholder="Dr. John Doe"
                             />
                         </div>
 
@@ -120,13 +134,27 @@ const RegisterPage = () => {
                                 value={formData.email}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-500 focus:border-medical-500 focus:bg-white transition-all duration-200 text-slate-800 placeholder-slate-400"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-500 focus:border-medical-500 focus:bg-white transition-all duration-200"
                                 placeholder="doctor@hospital.com"
                             />
                         </div>
 
-                        {/* Hidden role field - always Clinician */}
-                        <input type="hidden" name="role" value="Clinician" />
+                        <div>
+                            <label htmlFor="role" className="block text-sm font-semibold text-slate-700 mb-2 flex items-center space-x-2">
+                                <User className="w-4 h-4 text-medical-600" />
+                                <span>Role</span>
+                            </label>
+                            <select
+                                id="role"
+                                name="role"
+                                value={formData.role}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-500 focus:border-medical-500 focus:bg-white transition-all duration-200"
+                            >
+                                <option value="Research Viewer">Research Viewer</option>
+                                <option value="Doctor">Doctor</option>
+                            </select>
+                        </div>
 
                         <div>
                             <label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-2 flex items-center space-x-2">
@@ -140,9 +168,8 @@ const RegisterPage = () => {
                                 value={formData.password}
                                 onChange={handleChange}
                                 required
-                                minLength={6}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-500 focus:border-medical-500 focus:bg-white transition-all duration-200 text-slate-800 placeholder-slate-400"
-                                placeholder="At least 6 characters"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-500 focus:border-medical-500 focus:bg-white transition-all duration-200"
+                                placeholder="••••••••"
                             />
                         </div>
 
@@ -158,8 +185,8 @@ const RegisterPage = () => {
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-500 focus:border-medical-500 focus:bg-white transition-all duration-200 text-slate-800 placeholder-slate-400"
-                                placeholder="Re-enter your password"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-medical-500 focus:border-medical-500 focus:bg-white transition-all duration-200"
+                                placeholder="••••••••"
                             />
                         </div>
 
@@ -174,10 +201,10 @@ const RegisterPage = () => {
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    Creating account...
+                                    Creating Account...
                                 </span>
                             ) : (
-                                'Create Doctor Account'
+                                'Create Account'
                             )}
                         </button>
                     </form>
@@ -185,9 +212,15 @@ const RegisterPage = () => {
                     <div className="mt-6 text-center">
                         <p className="text-sm text-slate-600">
                             Already have an account?{' '}
-                            <Link to="/login" className="text-medical-600 hover:text-medical-700 font-semibold hover:underline transition-colors">
+                            <Link 
+                                to={isUrineRedirect ? `/login?redirect=${redirectPath}` : "/login"} 
+                                className="text-medical-600 hover:text-medical-700 font-semibold hover:underline transition-colors"
+                            >
                                 Sign in here
                             </Link>
+                        </p>
+                        <p className="text-xs text-slate-500 mt-3">
+                            <Link to="/home" className="hover:text-medical-600 transition-colors">← Back to Home</Link>
                         </p>
                     </div>
                 </div>

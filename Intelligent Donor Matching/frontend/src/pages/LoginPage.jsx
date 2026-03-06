@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart, Mail, Lock, AlertCircle, LogIn } from 'lucide-react';
+import { Heart, Mail, Lock, AlertCircle, LogIn, Droplet } from 'lucide-react';
 
 const LoginPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuth();
+    
+    // Get the redirect path from URL query parameters
+    const searchParams = new URLSearchParams(location.search);
+    const redirectPath = searchParams.get('redirect') || '/dashboard';
+    
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -29,12 +35,16 @@ const LoginPage = () => {
         const result = await login(formData.email, formData.password);
 
         if (result.success) {
-            navigate('/dashboard');
+            // Redirect to the specified path or default to dashboard
+            navigate(redirectPath);
         } else {
             setError(result.message);
             setLoading(false);
         }
     };
+
+    // Check if this is a redirect to urine module
+    const isUrineRedirect = redirectPath === '/urine';
 
     return (
         <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-50 via-medical-50 to-teal-50 py-12 px-4">
@@ -51,18 +61,34 @@ const LoginPage = () => {
                         onClick={() => navigate('/home')}
                         className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-medical-600 to-teal-600 rounded-2xl mb-4 shadow-lg transform hover:scale-105 transition-transform"
                     >
-                        <Heart className="w-10 h-10 text-white" />
+                        {isUrineRedirect ? (
+                            <Droplet className="w-10 h-10 text-white" />
+                        ) : (
+                            <Heart className="w-10 h-10 text-white" />
+                        )}
                     </button>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-medical-700 to-teal-700 bg-clip-text text-transparent mb-2">NephroSense</h1>
-                    <p className="text-slate-600 font-medium">Secure Access for Healthcare Professionals</p>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-medical-700 to-teal-700 bg-clip-text text-transparent mb-2">
+                        {isUrineRedirect ? 'Urine Analysis Access' : 'NephroSense'}
+                    </h1>
+                    <p className="text-slate-600 font-medium">
+                        {isUrineRedirect 
+                            ? 'Secure access for urinalysis system' 
+                            : 'Secure Access for Healthcare Professionals'}
+                    </p>
                 </div>
 
                 {/* Login Form */}
                 <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">
                     <div className="flex items-center justify-center mb-6">
                         <div className="flex items-center space-x-3">
-                            <LogIn className="w-7 h-7 text-medical-600" />
-                            <h2 className="text-2xl font-bold text-slate-800">Doctor Sign In</h2>
+                            {isUrineRedirect ? (
+                                <Droplet className="w-7 h-7 text-blue-600" />
+                            ) : (
+                                <LogIn className="w-7 h-7 text-medical-600" />
+                            )}
+                            <h2 className="text-2xl font-bold text-slate-800">
+                                {isUrineRedirect ? 'Sign In to Urine Analysis' : 'Doctor Sign In'}
+                            </h2>
                         </div>
                     </div>
 
@@ -111,7 +137,11 @@ const LoginPage = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-medical-600 to-teal-600 hover:from-medical-700 hover:to-teal-700 disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0"
+                            className={`w-full bg-gradient-to-r ${
+                                isUrineRedirect 
+                                    ? 'from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' 
+                                    : 'from-medical-600 to-teal-600 hover:from-medical-700 hover:to-teal-700'
+                            } disabled:from-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0`}
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center">
@@ -122,7 +152,7 @@ const LoginPage = () => {
                                     Signing in...
                                 </span>
                             ) : (
-                                'Sign In to Dashboard'
+                                isUrineRedirect ? 'Access Urine Analysis' : 'Sign In to Dashboard'
                             )}
                         </button>
                     </form>
@@ -130,7 +160,10 @@ const LoginPage = () => {
                     <div className="mt-6 text-center">
                         <p className="text-sm text-slate-600">
                             Don't have an account?{' '}
-                            <Link to="/register" className="text-medical-600 hover:text-medical-700 font-semibold hover:underline transition-colors">
+                            <Link 
+                                to={isUrineRedirect ? `/register?redirect=${redirectPath}` : "/register"} 
+                                className="text-medical-600 hover:text-medical-700 font-semibold hover:underline transition-colors"
+                            >
                                 Register here
                             </Link>
                         </p>
@@ -138,6 +171,24 @@ const LoginPage = () => {
                             <Link to="/home" className="hover:text-medical-600 transition-colors">← Back to Home</Link>
                         </p>
                     </div>
+
+                    {/* Demo credentials for testing */}
+                    {process.env.NODE_ENV === 'development' && (
+                        <div className="mt-4 p-3 bg-slate-100 rounded-lg">
+                            <p className="text-xs text-slate-500 mb-2">Demo Credentials (Dev Only):</p>
+                            <button
+                                onClick={() => {
+                                    setFormData({
+                                        email: 'doctor@hospital.com',
+                                        password: 'demo123'
+                                    });
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-700"
+                            >
+                                Fill demo account
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}

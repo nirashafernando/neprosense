@@ -21,7 +21,8 @@ import {
     FileText,
     BarChart3,
     Lock,
-    Unlock
+    Unlock,
+    Droplet
 } from "lucide-react";
 
 const LandingPage = () => {
@@ -42,14 +43,15 @@ const LandingPage = () => {
             title: "Urine Test Analysis",
             icon: Microscope,
             description: "CNN-based automated analysis of urine dipstick images for early detection of CKD biomarkers and risk indicators.",
-            status: "conceptual",
+            status: "active", // Changed from "conceptual" to "active"
             category: "Early Detection",
             features: ["Image Recognition", "Early Detection", "Automated Screening"],
             color: "from-blue-500 to-indigo-600",
             bgGradient: "from-blue-50 to-indigo-50",
             iconBg: "bg-blue-100",
             iconColor: "text-blue-600",
-            githubLink: "#"
+            githubLink: "#",
+            route: "/urine" // Added route for urine analysis
         },
         {
             number: 2,
@@ -63,7 +65,8 @@ const LandingPage = () => {
             bgGradient: "from-purple-50 to-pink-50",
             iconBg: "bg-purple-100",
             iconColor: "text-purple-600",
-            githubLink: "#"
+            githubLink: "#",
+            route: "/component-2"
         },
         {
             number: 3,
@@ -77,7 +80,8 @@ const LandingPage = () => {
             bgGradient: "from-amber-50 to-orange-50",
             iconBg: "bg-amber-100",
             iconColor: "text-amber-600",
-            githubLink: "#"
+            githubLink: "#",
+            route: "/component-3"
         },
         {
             number: 4,
@@ -91,7 +95,7 @@ const LandingPage = () => {
             bgGradient: "from-medical-50 to-teal-50",
             iconBg: "bg-medical-100",
             iconColor: "text-medical-600",
-            route: user ? "/make-prediction" : "/login"
+            route: user ? "/make-prediction" : "/login?redirect=/make-prediction"
         }
     ];
 
@@ -124,10 +128,23 @@ const LandingPage = () => {
 
     const stats = [
         { label: "AI Modules", value: "4", icon: Sparkles },
-        { label: "Active System", value: "1", icon: CheckCircle },
+        { label: "Active Systems", value: "2", icon: CheckCircle },
         { label: "Clinical Focus", value: "100%", icon: Target },
         { label: "Accuracy", value: "High", icon: Award }
     ];
+
+    const handleNavigate = (route) => {
+        if (route.startsWith('/urine')) {
+            // For urine module, check if user is logged in
+            if (user) {
+                navigate('/urine');
+            } else {
+                navigate('/login?redirect=/urine');
+            }
+        } else {
+            navigate(route);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -298,10 +315,12 @@ const LandingPage = () => {
                                     <div className="flex gap-3">
                                         {isActive ? (
                                             <button
-                                                onClick={() => navigate(component.route)}
+                                                onClick={() => handleNavigate(component.route)}
                                                 className={`flex-1 bg-gradient-to-r ${component.color} text-white px-6 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-2 group`}
                                             >
-                                                <Heart className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                {component.number === 1 ? <Droplet className="w-5 h-5 group-hover:scale-110 transition-transform" /> : 
+                                                 component.number === 4 ? <Heart className="w-5 h-5 group-hover:scale-110 transition-transform" /> : 
+                                                 <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />}
                                                 Launch System
                                                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                             </button>

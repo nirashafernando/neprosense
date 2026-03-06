@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { BarChart3, FlaskConical } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext"; // Updated import path
+import { BarChart3, FlaskConical, LogOut, User, Settings } from "lucide-react";
 import logo from './logo.png';
 
 const FrontPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth(); // Get user and logout from auth context
   const [showProfile, setShowProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -27,9 +29,7 @@ const FrontPage = () => {
   const getCurrentPageTitle = () => {
     const currentPath = location.pathname;
     if (currentPath === "/urine" || currentPath === "/urine/urinedashboard") return "Dashboard";
-    if (currentPath === "/urine/matching-results") return "Matching Results";
-    if (currentPath === "/urine/reports") return "Reports";
-    if (currentPath === "/urine/admin") return "Admin";
+    if (currentPath === "/urine/urineanalysis") return "Urine Test Analysis";
     return "NephroSense";
   };
 
@@ -38,12 +38,25 @@ const FrontPage = () => {
     console.log("Searching for:", searchQuery);
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/home");
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (user?.name) {
+      return user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+    }
+    return 'U';
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="flex flex-col w-64 min-h-screen text-white bg-gradient-to-b from-medical-800 via-medical-700 to-medical-900">
-      {/* Logo */}
-      <div className="flex flex-col items-center m-3 space-y-3">
+        {/* Logo */}
+        <div className="flex flex-col items-center m-3 space-y-3">
           <img src={logo} alt="NephroSense Logo" className="object-contain w-30 h-30" />
           <div className="text-center">
             <p className="text-lg font-bold text-white">UrineTestImage Analysis</p>
@@ -77,19 +90,6 @@ const FrontPage = () => {
             <p className="text-medical-100 text-sm mb-2">Support 24/7</p>
             <p className="text-medical-200 text-xs mb-4">Contact us anytime</p>
           </div>
-
-          {/* Support Character */}
-          {/* <div className="mt-4 flex items-center space-x-3">
-            <img
-              src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=60&h=60&fit=crop"
-              alt="Support"
-              className="w-12 h-12 rounded-full border-2 border-green-400"
-            />
-            <div>
-              <p className="text-green-100 text-sm">Nephrosense</p>
-              <p className="text-green-200 text-xs">Web</p>
-            </div>
-          </div> */}
         </div>
       </div>
 
@@ -146,11 +146,10 @@ const FrontPage = () => {
                   onClick={() => setShowProfile(!showProfile)}
                   className="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
                 >
-                  <img
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face"
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full border-2 border-gray-300"
-                  />
+                  {/* User Avatar with Initials */}
+                  <div className="w-8 h-8 rounded-full bg-medical-600 flex items-center justify-center text-white font-bold text-sm border-2 border-gray-300">
+                    {getUserInitials()}
+                  </div>
                   <svg
                     className={`w-4 h-4 text-gray-400 transition-transform ${
                       showProfile ? "transform rotate-180" : ""
@@ -170,35 +169,57 @@ const FrontPage = () => {
 
                 {/* Profile Dropdown */}
                 {showProfile && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-gray-200">
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    {/* User Info */}
+                    <div className="px-4 py-3 border-b border-gray-200">
                       <p className="text-sm font-medium text-gray-800">
-                        Dr. John Doe
+                        {user?.name || 'User'}
                       </p>
                       <p className="text-xs text-gray-500">
-                        hello@nephrosense.com
+                        {user?.email || 'user@nephrosense.com'}
+                      </p>
+                      <p className="text-xs text-medical-600 font-semibold mt-1">
+                        {user?.role || 'Clinician'}
                       </p>
                     </div>
-                    <a
-                      href="#"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    
+                    {/* Menu Items */}
+                    <button
+                      onClick={() => {
+                        setShowProfile(false);
+                        navigate('/urine/profile');
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
                     >
-                      Profile Settings
-                    </a>
-                    <a
-                      href="#"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      <User size={16} className="text-gray-500" />
+                      <span>Profile Settings</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setShowProfile(false);
+                        navigate('/urine/settings');
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
                     >
-                      Account Settings
-                    </a>
-                    <div className="border-t border-gray-200 mt-2">
-                      <a
-                        href="#"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Sign Out
-                      </a>
-                    </div>
+                      <Settings size={16} className="text-gray-500" />
+                      <span>Account Settings</span>
+                    </button>
+                    
+                    {/* Divider */}
+                    <div className="border-t border-gray-200 my-2"></div>
+                    
+                    {/* Logout Button */}
+                    <button
+                      onClick={() => {
+                        setShowProfile(false);
+                        handleLogout();
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                    >
+                      <LogOut size={16} className="text-red-500" />
+                      <span>Sign Out</span>
+                    </button>
                   </div>
                 )}
               </div>

@@ -64,9 +64,6 @@ function App() {
               <Route path="reports" element={<Reports />} />
               <Route path="admin-profile" element={<AdminProfile />} />
 
-               
-            
-
               {/* Doctor-only routes */}
               <Route
                 path="donor"
@@ -98,18 +95,20 @@ function App() {
               />
             </Route>
 
+            {/* Protected Urine Routes */}
             <Route
               path="/urine"
               element={
-                <AnalysisProvider>
-                  <UrineFrontpage />
-                </AnalysisProvider>
+                <ProtectedRoute>
+                  <AnalysisProvider>
+                    <UrineFrontpage />
+                  </AnalysisProvider>
+                </ProtectedRoute>
               }
             >
               <Route index element={<UrineDashboard />} />
               <Route path="urinedashboard" element={<UrineDashboard />} />
               <Route path="urineanalysis" element={<UrineTestAnalysis />} />
-              
             </Route>
 
             {/* Legacy redirects for backward compatibility */}

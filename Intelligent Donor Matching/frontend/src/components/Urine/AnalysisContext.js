@@ -15,28 +15,30 @@ export const AnalysisProvider = ({ children }) => {
   const addAnalysis = (data) => {
     const now = new Date();
     
+    
     const processedData = {
       ...data,
-      // Logic for Risk Evaluation Summary
-      summary: data.riskLevel || data.summary || "NORMAL",
+      summary: data.risk_evaluation || data.riskLevel || data.summary || "NORMAL PHYSIOLOGY",
       
-      // Patient Data Logic
+   
       patientName: data.patientName || "Anonymous",
-      patientId: data.patientId || `PID-${Math.floor(Math.random() * 10000)}`,
+      patientId: data.patientId || `NS-${Math.floor(10000 + Math.random() * 90000)}`,
       age: data.age || "N/A",
       gender: data.gender || "N/A",
       
-      // Flags for Critical/Abnormal status
-      hasWarning: data.hasWarning || data.riskLevel?.includes("HIGH") || false,
+  
+      results: data.yolo_data || data.results || [],
+      
+      hasWarning: data.hasWarning || (data.risk_evaluation?.includes("HIGH") || data.riskLevel?.includes("HIGH")),
       flags: {
-        ...data.flags,
-        isAbnormal: data.apiResults?.some(m => m.status === 'ABNORMAL') || data.hasWarning || false
+        isAbnormal: data.apiResults?.some(m => m.status === 'ABNORMAL') || 
+                    data.results?.some(m => m.status === 'ABNORMAL') || 
+                    data.hasWarning || false
       },
       
-      // Timestamps formatted for the Dashboard table
-      id: data.id || `NS-${Date.now()}`,
-      date: data.date || now.toLocaleDateString(),
-      time: data.time || now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      id: data.id || `REC-${Date.now()}`,
+      date: data.date || now.toISOString().split('T')[0],
+      time: data.time || now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
       timestamp: now.toISOString()
     };
 
