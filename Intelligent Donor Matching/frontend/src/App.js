@@ -34,6 +34,12 @@ import RiskPrediction from "./components/Lifestyle/RiskPrediction"; // Changed f
 
 import "./App.css";
 
+import UrineTestAnalysis from "./components/Urine/UrineTestAnalysis";
+import { AnalysisProvider } from "./components/Urine/AnalysisContext";
+import UrineDashboard from "./components/Urine/Dashboard"; 
+import UrineFrontpage from "./components/Urine/FrontPage";  
+
+
 function App() {
   return (
     <AuthProvider>
@@ -102,6 +108,23 @@ function App() {
               />
             </Route>
 
+            {/* Protected Urine Routes */}
+            <Route
+              path="/urine"
+              element={
+                <ProtectedRoute>
+                  <AnalysisProvider>
+                    <UrineFrontpage />
+                  </AnalysisProvider>
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<UrineDashboard />} />
+              <Route path="urinedashboard" element={<UrineDashboard />} />
+              <Route path="urineanalysis" element={<UrineTestAnalysis />} />
+            </Route>
+
+            {/* Legacy redirects for backward compatibility */}
             {/* Lifestyle Management Routes */}
             <Route
               path="/lifestyle"
