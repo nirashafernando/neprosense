@@ -314,146 +314,154 @@ NeproSense/
 
 ### Prerequisites
 
-Before running NephroSense, ensure you have the following installed:
+| Tool | Version | Download |
+|------|---------|----------|
+| Node.js | 18+ | https://nodejs.org/ |
+| Python | 3.9–3.13 | https://www.python.org/ |
+| Git | any | https://git-scm.com/ |
 
-- **Node.js** 18+ ([Download](https://nodejs.org/))
-- **Python** 3.9+ ([Download](https://www.python.org/))
-- **MongoDB** ([Download](https://www.mongodb.com/try/download/community) or use [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
-- **Git** ([Download](https://git-scm.com/))
-- **npm** (comes with Node.js)
-- **pip** (comes with Python)
+> MongoDB is **not required locally** — the project connects to MongoDB Atlas (cloud). The connection string is already configured in `services/donor-matching/backend/.env`.
+
+---
 
 ### Installation
 
-#### 1. Clone the Repository
+#### 1. Clone the repository
 
 ```bash
 git clone https://github.com/your-org/nephrosense.git
 cd nephrosense
-cd "Intelligent Donor Matching"
 ```
 
-#### 2. Backend Setup
+#### 2. Create the shared Python virtual environment
+
+All Python services share one `.venv` at the project root.
 
 ```bash
-cd backend
+# Windows
+python -m venv .venv
+.venv\Scripts\activate
+
+# macOS / Linux
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+#### 3. Install Python dependencies
+
+```bash
+# Donor Matching ML service
+pip install -r services/donor-matching/ml-service/requirements.txt
+
+# Lifestyle service
+pip install -r services/lifestyle/flask_app/requirements.txt
+
+# Ultrasound & Urine services (install flask + flask-cors if not already present)
+pip install flask flask-cors
+```
+
+#### 4. Install Node dependencies
+
+Run each command from the project root:
+
+```bash
+# Root orchestrator (concurrently)
 npm install
-```
 
-Create a `.env` file in the `backend` directory:
+# API Gateway
+npm --prefix api-gateway install
 
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/nephrosense
-JWT_SECRET=your_jwt_secret_key_here
-ML_SERVICE_URL=http://localhost:8000
-NODE_ENV=development
-```
+# Donor Matching Node.js backend
+npm --prefix services/donor-matching/backend install
 
-#### 3. Frontend Setup
-
-```bash
-cd ../frontend
-npm install
-```
-
-Create a `.env` file in the `frontend` directory:
-
-```env
-REACT_APP_API_URL=http://localhost:5000/api
-REACT_APP_ML_SERVICE_URL=http://localhost:8000
-```
-
-#### 4. ML Service Setup
-
-```bash
-cd ../ml-service
-pip install -r requirements.txt
-```
-
-Create a `.env` file in the `ml-service` directory:
-
-```env
-PORT=8000
-MODEL_PATH=./model
+# React frontend
+npm --prefix frontend install
 ```
 
 ---
 
 ## Configuration
 
-### Environment Variables
+The only file you may need to edit is `services/donor-matching/backend/.env`:
 
-#### Backend (`backend/.env`)
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Backend server port | `5000` |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/nephrosense` |
-| `JWT_SECRET` | Secret key for JWT tokens | Required |
-| `ML_SERVICE_URL` | ML service endpoint | `http://localhost:8000` |
-| `NODE_ENV` | Environment mode | `development` |
+```env
+PORT=5000
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster0.1r6lksv.mongodb.net/?appName=Cluster0
+JWT_SECRET=your_jwt_secret_key_change_this_in_production
+JWT_EXPIRE=7d
+```
 
-#### Frontend (`frontend/.env`)
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `REACT_APP_API_URL` | Backend API endpoint | `http://localhost:5000/api` |
-| `REACT_APP_ML_SERVICE_URL` | ML service endpoint | `http://localhost:8000` |
+Everything else (ports, gateway proxy rules) is pre-configured and requires no changes.
 
-#### ML Service (`ml-service/.env`)
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | ML service port | `8000` |
-| `MODEL_PATH` | Path to trained models | `./model` |
+### Port Map
+
+| Service | Port |
+|---------|------|
+| React Frontend | 3000 |
+| Donor Matching Backend (Node.js) | 5000 |
+| Lifestyle Flask service | 5001 |
+| Ultrasound Flask service | 5002 |
+| Urine Flask service | 5003 |
+| Donor Matching ML service (FastAPI) | 8000 |
+| API Gateway | 8080 |
 
 ---
 
 ## Running the Application
 
-### Development Mode
+### One command — starts everything
 
-Open **three separate terminals**:
+From the project root:
 
-#### Terminal 1: Backend
 ```bash
-cd "Intelligent Donor Matching/backend"
-npm run dev
-```
-Backend will run on `http://localhost:5000`
-
-#### Terminal 2: Frontend
-```bash
-cd "Intelligent Donor Matching/frontend"
-npm start
-```
-Frontend will run on `http://localhost:3000`
-
-#### Terminal 3: ML Service
-```bash
-cd "Intelligent Donor Matching/ml-service"
-python main.py
-```
-ML Service will run on `http://localhost:8000`
-
-### Production Mode
-
-#### Backend
-```bash
-cd backend
 npm start
 ```
 
-#### Frontend
+This uses `concurrently` to launch all 7 services simultaneously:
+- Donor Matching Node.js backend (port 5000)
+- Donor Matching ML FastAPI service (port 8000)
+- Lifestyle Flask service (port 5001)
+- Ultrasound Flask service (port 5002)
+- Urine Analysis Flask service (port 5003)
+- API Gateway Express (port 8080)
+- React Frontend (port 3000)
+
+Then open **http://localhost:3000** in your browser.
+
+### Run individual services (for debugging)
+
 ```bash
-cd frontend
-npm run build
-# Serve the build folder with a static server
+# Frontend only
+npm run service:frontend
+
+# API Gateway only
+npm run service:gateway
+
+# Donor Matching backend only
+npm run service:donor-api
+
+# Donor Matching ML service only
+npm run service:ml
+
+# Lifestyle service only
+npm run service:lifestyle
+
+# Ultrasound service only
+npm run service:ultrasound
+
+# Urine service only
+npm run service:urine
 ```
 
-#### ML Service
-```bash
-cd ml-service
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
+### Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `python not found` error | Make sure Python is added to PATH, or use `py` on Windows |
+| Port already in use | Kill the process using that port: `npx kill-port 5000` |
+| Python service crashes on startup | Activate the venv first: `.venv\Scripts\activate` |
+| `Module not found` in Python | Re-run `pip install -r requirements.txt` with the venv active |
+| Frontend shows blank / API errors | Ensure the API Gateway (port 8080) is running |
 
 ---
 
