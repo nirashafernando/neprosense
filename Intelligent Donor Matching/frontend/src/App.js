@@ -12,6 +12,8 @@ import LandingPage from "./pages/LandingPage";
 import Component1Info from "./pages/Component1Info";
 import Component2Info from "./pages/Component2Info";
 import Component3Info from "./pages/Component3Info";
+// Comment out Component4Info if it doesn't exist yet
+// import Component4Info from "./pages/Component4Info";
 import FrontPage from "./components/FrontPage";
 import Dashboard from "./components/Dashboard";
 import Donor from "./components/Donor";
@@ -21,6 +23,15 @@ import MatchingResults from "./components/MatchingResults";
 import DetailedMatchInformation from "./components/DetailedMatchInformation";
 import Reports from "./components/Reports";
 import AdminProfile from "./components/AdminProfile";
+
+// Import Lifestyle components - FIX THE TYPO: "Lifetyle" -> "Lifestyle"
+import LifestyleFrontPage from "./components/Lifestyle/FrontPage";
+import LifestyleDashboard from "./components/Lifestyle/Dashboard";
+import LifestyleTracker from "./components/Lifestyle/LifestyleTracker";
+import LifestyleInsights from "./components/Lifestyle/LifestyleInsights";
+import LifestyleSummary from "./components/Lifestyle/LifestyleSummary";
+import RiskPrediction from "./components/Lifestyle/RiskPrediction"; // Changed from LifeStyle to Lifestyle
+
 import "./App.css";
 
 import UrineTestAnalysis from "./components/Urine/UrineTestAnalysis";
@@ -45,8 +56,10 @@ function App() {
             <Route path="/component-1" element={<Component1Info />} />
             <Route path="/component-2" element={<Component2Info />} />
             <Route path="/component-3" element={<Component3Info />} />
+            {/* Comment out if Component4Info doesn't exist */}
+            {/* <Route path="/component-4" element={<Component4Info />} /> */}
 
-            {/* Protected routes - All under /app */}
+            {/* Protected routes - Donor Matching System */}
             <Route
               path="/app"
               element={
@@ -112,6 +125,24 @@ function App() {
             </Route>
 
             {/* Legacy redirects for backward compatibility */}
+            {/* Lifestyle Management Routes */}
+            <Route
+              path="/lifestyle"
+              element={
+                <ProtectedRoute>
+                  <LifestyleFrontPage />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/lifestyle/dashboard" replace />} />
+              <Route path="dashboard" element={<LifestyleDashboard />} />
+              <Route path="tracker" element={<LifestyleTracker />} />
+              <Route path="insights" element={<LifestyleInsights />} />
+              <Route path="summary" element={<LifestyleSummary />} />
+              <Route path="risk-prediction" element={<RiskPrediction />} />
+            </Route>
+
+            {/* Legacy redirects for Donor Matching */}
             <Route
               path="/dashboard"
               element={<Navigate to="/app/dashboard" replace />}

@@ -73,7 +73,7 @@ const LandingPage = () => {
             title: "Lifestyle Prediction",
             icon: TrendingUp,
             description: "Machine learning-based prediction of CKD progression with personalized lifestyle and treatment recommendations.",
-            status: "conceptual",
+            status: "active",
             category: "Progression Tracking",
             features: ["Progression Forecasting", "Personalized Advice", "Risk Tracking"],
             color: "from-amber-500 to-orange-600",
@@ -82,6 +82,8 @@ const LandingPage = () => {
             iconColor: "text-amber-600",
             githubLink: "#",
             route: "/component-3"
+            route: "/lifestyle",
+            infoRoute: "/component-3"
         },
         {
             number: 4,
@@ -96,6 +98,7 @@ const LandingPage = () => {
             iconBg: "bg-medical-100",
             iconColor: "text-medical-600",
             route: user ? "/make-prediction" : "/login?redirect=/make-prediction"
+            route: "/app/make-prediction"
         }
     ];
 
@@ -128,7 +131,7 @@ const LandingPage = () => {
 
     const stats = [
         { label: "AI Modules", value: "4", icon: Sparkles },
-        { label: "Active Systems", value: "2", icon: CheckCircle },
+        { label: "Active System", value: "2", icon: CheckCircle },
         { label: "Clinical Focus", value: "100%", icon: Target },
         { label: "Accuracy", value: "High", icon: Award }
     ];
@@ -188,7 +191,7 @@ const LandingPage = () => {
                         {/* CTA Buttons */}
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-fade-in-up animation-delay-800">
                             <button
-                                onClick={() => navigate(user ? '/dashboard' : '/login')}
+                                onClick={() => navigate(user ? '/app/dashboard' : '/login')}
                                 className="group bg-white text-medical-700 px-8 py-4 rounded-xl font-bold text-lg hover:bg-medical-50 transition-all shadow-2xl hover:shadow-3xl hover:scale-105 flex items-center gap-3 w-full sm:w-auto"
                             >
                                 {user ? <Activity className="w-6 h-6" /> : <Users className="w-6 h-6" />}
@@ -311,11 +314,23 @@ const LandingPage = () => {
                                         ))}
                                     </div>
 
-                                    {/* Action Buttons */}
+                                    {/* Action Buttons - UPDATED SECTION */}
                                     <div className="flex gap-3">
                                         {isActive ? (
                                             <button
-                                                onClick={() => handleNavigate(component.route)}
+                                                onClick={() => {
+                                                    if (component.route) {
+                                                        if (user) {
+                                                            // If user is logged in, go directly to the route
+                                                            navigate(component.route);
+                                                        } else {
+                                                            // If not logged in, go to login with return path
+                                                            navigate('/login', { 
+                                                                state: { from: { pathname: component.route } } 
+                                                            });
+                                                        }
+                                                    }
+                                                }}
                                                 className={`flex-1 bg-gradient-to-r ${component.color} text-white px-6 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-2 group`}
                                             >
                                                 {component.number === 1 ? <Droplet className="w-5 h-5 group-hover:scale-110 transition-transform" /> : 
@@ -460,7 +475,7 @@ const LandingPage = () => {
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <button
-                            onClick={() => navigate(user ? '/dashboard' : '/register')}
+                            onClick={() => navigate(user ? '/app/dashboard' : '/register')}
                             className="bg-white text-medical-700 px-10 py-4 rounded-xl font-black text-lg hover:bg-medical-50 transition-all shadow-2xl hover:scale-105 flex items-center justify-center gap-2"
                         >
                             <Users className="w-6 h-6" />

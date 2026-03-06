@@ -1,8 +1,47 @@
 .App {
-  text-align: left;
+  text-align: left; /* Keep donor matching's left alignment */
 }
 
-/* Custom scrollbar for webkit browsers */
+/* App logo styles from your frontend */
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+/* App header styles from your frontend */
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+/* App link styles from your frontend */
+.App-link {
+  color: #61dafb;
+}
+
+/* Logo spin animation from your frontend */
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom scrollbar for webkit browsers (from donor matching) */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -53,4 +92,307 @@
   to {
     transform: rotate(360deg);
   }
+}
+/* Additional Lifestyle-specific styles can be added below */
+/* Lifestyle Module Cards */
+.lifestyle-card {
+  @apply bg-white rounded-xl shadow-lg p-6 border-l-4 transition-all hover:shadow-xl;
+}
+
+.lifestyle-card-blue {
+  @apply border-blue-500;
+}
+
+.lifestyle-card-amber {
+  @apply border-amber-500;
+}
+
+.lifestyle-card-green {
+  @apply border-green-500;
+}
+
+.lifestyle-card-purple {
+  @apply border-purple-500;
+}
+
+/* Status indicators */
+.status-good {
+  @apply bg-green-100 text-green-700;
+}
+
+.status-moderate {
+  @apply bg-yellow-100 text-yellow-700;
+}
+
+.status-high {
+  @apply bg-red-100 text-red-700;
+}
+
+/* Progress bars */
+.progress-bar {
+  @apply w-full bg-gray-200 rounded-full h-2;
+}
+
+.progress-bar-fill {
+  @apply h-2 rounded-full transition-all duration-500;
+}
+
+.progress-bar-fill-blue {
+  @apply bg-blue-500;
+}
+
+.progress-bar-fill-amber {
+  @apply bg-amber-500;
+}
+
+.progress-bar-fill-green {
+  @apply bg-green-500;
+}
+
+/* Animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+
+.animation-delay-400 {
+  animation-delay: 0.4s;
+  opacity: 0;
+}
+
+.animation-delay-600 {
+  animation-delay: 0.6s;
+  opacity: 0;
+}
+
+.animation-delay-800 {
+  animation-delay: 0.8s;
+  opacity: 0;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1s;
+  opacity: 0;
+}
+
+/* Donor matching specific styles can be added below */
+.donor-card {
+  @apply bg-white rounded-xl shadow-md p-4 border border-gray-200 hover:shadow-lg transition-all;
+}
+
+.donor-badge {
+  @apply px-2 py-1 rounded-full text-xs font-semibold;
+}
+
+.donor-badge-success {
+  @apply bg-green-100 text-green-700;
+}
+
+.donor-badge-warning {
+  @apply bg-yellow-100 text-yellow-700;
+}
+
+.donor-badge-danger {
+  @apply bg-red-100 text-red-700;
+}
+
+/* Responsive design utilities */
+@media (max-width: 640px) {
+  .hide-on-mobile {
+    display: none;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .hide-on-tablet {
+    display: none;
+  }
+}
+
+/* Loading spinner */
+.loading-spinner {
+  @apply animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto;
+}
+
+/* Toast notifications */
+.toast-success {
+  @apply fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50;
+}
+
+.toast-error {
+  @apply fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50;
+}
+
+.toast-info {
+  @apply fixed bottom-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50;
+}
+
+/* Form styles */
+.form-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700 mb-2;
+}
+
+.form-error {
+  @apply text-red-600 text-xs mt-1;
+}
+
+/* Table styles */
+.data-table {
+  @apply min-w-full divide-y divide-gray-200;
+}
+
+.data-table th {
+  @apply px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.data-table td {
+  @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
+}
+
+.data-table tr {
+  @apply hover:bg-gray-50;
+}
+
+/* Modal styles */
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+}
+
+.modal-content {
+  @apply bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply bg-gradient-to-r from-blue-600 to-teal-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-teal-700 transition-all shadow-md hover:shadow-lg;
+}
+
+.btn-secondary {
+  @apply bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg;
+}
+
+.btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg;
+}
+
+/* Card grid layouts */
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Typography */
+.heading-1 {
+  @apply text-3xl font-bold text-gray-900;
+}
+
+.heading-2 {
+  @apply text-2xl font-bold text-gray-800;
+}
+
+.heading-3 {
+  @apply text-xl font-bold text-gray-800;
+}
+
+.body-text {
+  @apply text-gray-600 leading-relaxed;
+}
+
+/* Status badges */
+.badge {
+  @apply px-3 py-1 rounded-full text-xs font-semibold;
+}
+
+.badge-low {
+  @apply bg-green-100 text-green-700;
+}
+
+.badge-moderate {
+  @apply bg-yellow-100 text-yellow-700;
+}
+
+.badge-high {
+  @apply bg-red-100 text-red-700;
+}
+
+/* Risk level colors */
+.risk-low {
+  @apply text-green-600;
+}
+
+.risk-moderate {
+  @apply text-yellow-600;
+}
+
+.risk-high {
+  @apply text-red-600;
+}
+
+/* Gradient backgrounds */
+.gradient-green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.gradient-blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.gradient-amber {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.gradient-purple {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+/* Shadows */
+.shadow-soft {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.shadow-medium {
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+}
+
+.shadow-hard {
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Focus styles */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+}
+
+/* Disabled states */
+.disabled {
+  @apply opacity-50 cursor-not-allowed;
 }

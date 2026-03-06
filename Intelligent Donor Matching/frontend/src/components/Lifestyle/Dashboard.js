@@ -18,7 +18,7 @@ const Dashboard = () => {
     totalEntries: 0,
     riskAssessments: 0,
     positiveTrends: 0,
-    activeUsers: 1, // Currently single user
+    activeUsers: 1,
   });
 
   const [recentEntries, setRecentEntries] = useState([]);
@@ -33,24 +33,19 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        // Backend එකෙන් දත්ත ගන්නවා
-        const response = await fetch("http://localhost:5000/view-data");
+        const response = await fetch("http://127.0.0.1:5000/view-data");
         const data = await response.json();
 
         if (response.ok) {
-          // 1. Total Entries
           const total = data.length;
 
-          // 2. Calculate Risk (Simple Logic for Demo: Low Water or High Calories = High Risk)
           let low = 0, mod = 0, high = 0;
           
           const processedEntries = data.map((item, index) => {
-            // Backend keys mapping
             const water = item["Water (L)"] || item.water;
-            const calories = item["Calories (kcal)"] || item.calories || item["Salt (g)"]; // Handling key variations
+            const calories = item["Calories (kcal)"] || item.calories;
             const sleep = item["Sleep (hrs)"] || item.sleep;
             
-            // Determine Risk
             let riskLevel = "Low";
             if (water < 1.5 || calories > 2500) riskLevel = "High";
             else if (water < 2.0 || calories > 2200) riskLevel = "Moderate";
@@ -69,22 +64,19 @@ const Dashboard = () => {
             };
           });
 
-          // Update Stats
           setStats({
             totalEntries: total,
-            riskAssessments: total, // Assuming every entry is assessed
-            positiveTrends: Math.floor(low / (total || 1) * 100), // % of Low risk
+            riskAssessments: total,
+            positiveTrends: Math.floor(low / (total || 1) * 100),
             activeUsers: 1,
           });
 
-          // Update Risk Distribution %
           setRiskDistribution({
             low: total ? Math.round((low / total) * 100) : 0,
             moderate: total ? Math.round((mod / total) * 100) : 0,
             high: total ? Math.round((high / total) * 100) : 0,
           });
 
-          // Show last 4 entries
           setRecentEntries(processedEntries.slice(-4).reverse());
         }
       } catch (error) {
@@ -148,13 +140,11 @@ const Dashboard = () => {
   return (
     <div className="p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Welcome Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Lifestyle Management</h1>
           <p className="text-gray-600">Monitor and improve CKD patient lifestyles with AI-powered insights</p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {statsCards.map((stat, index) => {
             const Icon = stat.icon;
@@ -185,7 +175,6 @@ const Dashboard = () => {
           })}
         </div>
 
-        {/* Main Action CTA */}
         <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-xl shadow-xl p-8 mb-8 text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -194,7 +183,7 @@ const Dashboard = () => {
                 Log daily habits, monitor trends, and receive personalized recommendations
               </p>
               <button
-                onClick={() => navigate('/lifestyle-tracker')}
+                onClick={() => navigate('/lifestyle/tracker')}
                 className="bg-white text-blue-700 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-all shadow-lg flex items-center gap-2 text-lg"
               >
                 <Heart className="w-6 h-6" />
@@ -204,16 +193,13 @@ const Dashboard = () => {
             </div>
             <div className="hidden md:block">
               <div className="bg-white/10 backdrop-blur-sm rounded-full p-6">
-                <Activity className="w-24 h-24 text-white opacity-80"
-                 />
+                <Activity className="w-24 h-24 text-white opacity-80" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Risk Distribution & Recent Entries */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Risk Distribution */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Risk Distribution (Real-time)</h2>
             <div className="space-y-4">
@@ -237,50 +223,47 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Recent Entries */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Lifestyle Entries</h2>
             {loading ? (
-                 <p className="text-gray-500">Loading data...</p>
+              <p className="text-gray-500">Loading data...</p>
             ) : recentEntries.length === 0 ? (
-                 <p className="text-gray-500">No entries found. Start tracking!</p>
+              <p className="text-gray-500">No entries found. Start tracking!</p>
             ) : (
-            <div className="space-y-3">
-              {recentEntries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div>
-                    <p className="font-semibold text-gray-900">{entry.user}</p>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <Droplets className="w-4 h-4" />
-                        {entry.hydration}
+              <div className="space-y-3">
+                {recentEntries.map((entry) => (
+                  <div key={entry.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div>
+                      <p className="font-semibold text-gray-900">{entry.user}</p>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <Droplets className="w-4 h-4" />
+                          {entry.hydration}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Activity className="w-4 h-4" />
+                          {entry.activity}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRiskColor(entry.risk)}`}>
+                        {entry.risk}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Activity className="w-4 h-4" />
-                        {entry.activity}
-                      </span>
+                      <span className="text-sm text-gray-500">{entry.date}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRiskColor(entry.risk)}`}>
-                      {entry.risk}
-                    </span>
-                    <span className="text-sm text-gray-500">{entry.date}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="bg-white rounded-xl shadow-lg p-6">
-            {/* ... Keep the same Quick Actions buttons ... */}
-             <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <button
-              onClick={() => navigate("/lifestyle-tracker")}
+              onClick={() => navigate("/lifestyle/tracker")}
               className="bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 p-4 rounded-lg transition-all group"
             >
               <div className="flex flex-col items-center">
@@ -292,7 +275,7 @@ const Dashboard = () => {
             </button>
 
             <button
-              onClick={() => navigate("/lifestyle-insights")}
+              onClick={() => navigate("/lifestyle/insights")}
               className="bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 p-4 rounded-lg transition-all group"
             >
               <div className="flex flex-col items-center">
@@ -304,7 +287,7 @@ const Dashboard = () => {
             </button>
 
             <button
-              onClick={() => navigate("/lifestyle-risk-prediction")}
+              onClick={() => navigate("/lifestyle/risk-prediction")}
               className="bg-red-50 hover:bg-red-100 border-2 border-red-200 p-4 rounded-lg transition-all group"
             >
               <div className="flex flex-col items-center">
@@ -316,7 +299,7 @@ const Dashboard = () => {
             </button>
 
             <button
-              onClick={() => navigate("/lifestyle-data-summary")}
+              onClick={() => navigate("/lifestyle/summary")}
               className="bg-green-50 hover:bg-green-100 border-2 border-green-200 p-4 rounded-lg transition-all group"
             >
               <div className="flex flex-col items-center">

@@ -4,7 +4,7 @@ import { Save, Activity, Droplets, Moon, Utensils, AlertCircle } from "lucide-re
 const LifestyleTracker = () => {
   const [formData, setFormData] = useState({
     waterIntake: "",
-    dailyCalories: "", // Changed from saltIntake to dailyCalories
+    dailyCalories: "",
     sleepHours: "",
     physicalActivity: "",
     foodItems: [],
@@ -35,8 +35,7 @@ const LifestyleTracker = () => {
     setSuccess(false);
 
     try {
-      
-      const response = await fetch("http://localhost:5000/api/save-entry", {
+      const response = await fetch("http://127.0.0.1:5000/save-entry", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,14 +44,12 @@ const LifestyleTracker = () => {
       });
 
       if (response.ok) {
-      
         console.log("Form data saved to backend:", formData);
         setSuccess(true);
         
-      
         setFormData({
           waterIntake: "",
-          dailyCalories: "", // Reset dailyCalories
+          dailyCalories: "",
           sleepHours: "",
           physicalActivity: "",
           foodItems: [],
@@ -62,15 +59,13 @@ const LifestyleTracker = () => {
 
         setTimeout(() => setSuccess(false), 3000);
       } else {
-      
         console.error("Failed to save data");
         alert("Failed to save data. Please make sure the Python backend is running.");
       }
 
     } catch (error) {
-      
       console.error("Error connecting to server:", error);
-      alert("Error connecting to server! Check if http://localhost:5000 is accessible.");
+      alert("Error connecting to server! Check if http://127.0.0.1:5000 is accessible.");
     } finally {
       setLoading(false);
     }
@@ -121,7 +116,7 @@ const LifestyleTracker = () => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <form onSubmit={handleSubmit}>
             <div className="space-y-6">
-              {/* Water Intake & Calories (Modified Section) */}
+              {/* Water Intake & Calories */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center space-x-3 mb-3">
                   <Droplets className="w-5 h-5 text-blue-600" />
@@ -147,7 +142,6 @@ const LifestyleTracker = () => {
                     <p className="text-xs text-gray-500 mt-1">Recommended: 2-3 liters/day</p>
                   </div>
                   
-                  {/* CHANGED: Salt Intake removed, Daily Calories added */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Daily Calories
@@ -165,7 +159,6 @@ const LifestyleTracker = () => {
                     />
                     <p className="text-xs text-gray-500 mt-1">Recommended: Depends on diet plan</p>
                   </div>
-
                 </div>
               </div>
 
