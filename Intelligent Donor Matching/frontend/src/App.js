@@ -23,6 +23,13 @@ import Reports from "./components/Reports";
 import AdminProfile from "./components/AdminProfile";
 import "./App.css";
 
+
+import KidneyUltrasoundSystem from "./components/Ultrasound/KidneyUltrasoundSystem";
+import { AnalysisProvider } from "./components/Ultrasound/AnalysisContext";
+import UltraDashboard from "./components/Ultrasound/Dashboard";
+import UltraFrontPage from "./components/Ultrasound/FrontPage";
+
+
 function App() {
   return (
     <AuthProvider>
@@ -89,6 +96,20 @@ function App() {
               />
             </Route>
 
+            {/* ================= ULTRASOUND MODULE (Independent Route) ================= */}
+            <Route
+              path="/ultrasound"
+              element={
+                <AnalysisProvider>
+                  <UltraFrontPage />
+                </AnalysisProvider>
+              }
+            >
+              <Route index element={<UltraDashboard />} />
+              <Route path="dashboard" element={<UltraDashboard />} />
+              <Route path="analysis" element={<KidneyUltrasoundSystem />} />
+            </Route>
+
             {/* Legacy redirects for backward compatibility */}
             <Route
               path="/dashboard"
@@ -112,7 +133,7 @@ function App() {
             />
 
             {/* Catch all - redirect to home */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} /> 
           </Routes>
         </div>
       </Router>

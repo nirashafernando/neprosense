@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import base64
 import tensorflow as tf
+import uuid
+from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -10,6 +12,8 @@ app = Flask(__name__)
 CORS(app)
 
 MODEL_PATH = os.path.join('models', 'kidney_model.h5')
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 model = None
 
 try:
@@ -37,6 +41,9 @@ def get_prediction_results(image):
         
         pixel_count = np.sum(mask_binary > 0)
         
+        total_pixels = w_orig * h_orig
+        disease_percentage = (pixel_count / total_pixels) * 100
+        
         min_thick, max_thick = 0.0, 0.0
         if pixel_count > 0:
             dist_transform = cv2.distanceTransform((mask_binary > 0).astype(np.uint8), cv2.DIST_L2, 3)
@@ -44,26 +51,21 @@ def get_prediction_results(image):
             max_thick = round(max_val * 0.2, 2)
             min_thick = round(max_thick * 0.45, 2)
 
-        # Healthy / Mild / Severe Logic
-        if pixel_count < 300:
+        if disease_percentage < 5.0:
             diag_text = "Healthy"
-            color = [0, 255, 0] # Green
-        elif 300 <= pixel_count < 2500:
+            color = [0, 255, 0]
+        elif 5.0 <= disease_percentage < 15.0:
             diag_text = "Mild CKD"
-            color = [0, 165, 255] # Orange
+            color = [0, 165, 255]
         else:
             diag_text = "Severe CKD"
-            color = [0, 0, 255] # Red
+            color = [0, 0, 255]
 
         annotated = image.copy()
         
         center_x, center_y = int(w_orig / 2), int(h_orig / 2)
-        radius = int(min(w_orig, h_orig) / 4) 
-        cv2.circle(annotated, (center_x, center_y), radius, color, 3, cv2.LINE_AA)
-        
-        overlay = image.copy()
-        cv2.circle(overlay, (center_x, center_y), radius, color, -1) # Fill color
-        cv2.addWeighted(overlay, 0.2, annotated, 0.8, 0, annotated) # 20% opacity
+        axes = (int(w_orig / 3), int(h_orig / 5)) 
+        cv2.ellipse(annotated, (center_x, center_y), axes, 0, 0, 360, color, 2)
         
         confidence = float(np.max(prediction)) * 100
 
@@ -85,8 +87,17 @@ def predict():
             return jsonify({"error": "No file uploaded"}), 400
             
         file = request.files['file']
-        nparr = np.frombuffer(file.read(), np.uint8)
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if file.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
+        
+        file.save(filepath)
+
+        image = cv2.imread(filepath)
 
         if image is None:
             return jsonify({"error": "Invalid format"}), 400

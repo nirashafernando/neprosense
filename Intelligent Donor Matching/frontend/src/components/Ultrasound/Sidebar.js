@@ -89,7 +89,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="flex flex-col w-64 min-h-screen text-white bg-green-600">
+    <div className="flex flex-col w-64 min-h-screen text-white bg-gradient-to-b from-medical-800 via-medical-700 to-medical-900">
       {/* Logo */}
        <div className="flex flex-col items-center m-3 space-y-3">
     {/* Logo Image */}
@@ -112,8 +112,8 @@ const Sidebar = () => {
                 onClick={() => navigate(item.path)}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                   item.active
-                    ? "bg-green-500 text-white"
-                    : "text-green-100 hover:bg-green-500 hover:text-white"
+                    ? "bg-medical-700 text-white"
+                    : "text-medical-200 hover:bg-medical-700 hover:text-white"
                 }`}
               >
                 {item.icon}
@@ -125,11 +125,11 @@ const Sidebar = () => {
       </nav>
 
       {/* Support Section */}
-      <div className="p-6 border-t border-green-500">
-        <div className="p-4 bg-green-500 rounded-lg">
-          <p className="mb-2 text-sm text-green-100">Support 24/7</p>
-          <p className="mb-4 text-xs text-green-200">Contact us anytime</p>
-          <button className="px-4 py-2 text-sm font-medium text-green-600 transition-colors bg-white rounded-lg hover:bg-green-50">
+      <div className="p-6 border-t border-medical-700">
+        <div className="p-4 rounded-lg bg-medical-700">
+          <p className="mb-2 text-sm text-medical-200">Support 24/7</p>
+          <p className="mb-4 text-xs text-medical-400">Contact us anytime</p>
+          <button className="px-4 py-2 text-sm font-medium transition-colors bg-white rounded-lg text-medical-800 hover:bg-medical-900">
             Start
           </button>
         </div>
@@ -139,11 +139,11 @@ const Sidebar = () => {
           <img
             src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=60&h=60&fit=crop"
             alt="Support"
-            className="w-12 h-12 border-2 border-green-400 rounded-full"
+            className="w-12 h-12 border-2 rounded-full border-medical-600"
           />
           <div>
-            <p className="text-sm text-green-100">Medical Assistant</p>
-            <p className="text-xs text-green-200">Online now</p>
+            <p className="text-sm text-medical-200">Medical Assistant</p>
+            <p className="text-xs text-medical-400">Online now</p>
           </div>
         </div>
       </div>
