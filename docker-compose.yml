@@ -64,9 +64,10 @@ services:
       context: ./services/donor-matching/backend
       dockerfile: Dockerfile
     restart: unless-stopped
-    # Reads MONGODB_URI and JWT_SECRET from the existing .env file
+    # Reads MONGODB_URI and JWT_SECRET from .env (copy from .env.example)
     env_file:
-      - ./services/donor-matching/backend/.env
+      - path: ./services/donor-matching/backend/.env
+        required: false
     environment:
       # Override localhost URL so it points to the donor-ml container
       - ML_SERVICE_URL=http://donor-ml:8000
