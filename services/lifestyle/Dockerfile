@@ -9,6 +9,4 @@ COPY flask_app/ .
 
 EXPOSE 5001
 
-ENV FLASK_APP=app.py
-
-CMD ["flask", "run", "--host=0.0.0.0", "--port=5001"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "app:app"]
