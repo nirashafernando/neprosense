@@ -10,7 +10,7 @@ const LoginPage = () => {
     
     // Get the redirect path from URL query parameters
     const searchParams = new URLSearchParams(location.search);
-    const redirectPath = searchParams.get('redirect') || '/home';
+    const redirectPath = searchParams.get('redirect') || '/dashboard';
     
     const [formData, setFormData] = useState({
         email: '',
@@ -174,23 +174,7 @@ const LoginPage = () => {
                         </p>
                     </div>
 
-                    {/* Demo credentials for testing */}
-                    {process.env.NODE_ENV === 'development' && (
-                        <div className="mt-4 p-3 bg-slate-100 rounded-lg">
-                            <p className="text-xs text-slate-500 mb-2">Demo Credentials (Dev Only):</p>
-                            <button
-                                onClick={() => {
-                                    setFormData({
-                                        email: 'doctor@hospital.com',
-                                        password: 'demo123'
-                                    });
-                                }}
-                                className="text-xs text-blue-600 hover:text-blue-700"
-                            >
-                                Fill demo account
-                            </button>
-                        </div>
-                    )}
+
                 </div>
 
                 {/* Footer */}

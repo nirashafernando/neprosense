@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Activity, BarChart3, FileText, UserCog, Lightbulb, Heart } from "lucide-react";
+import { Home, Activity, BarChart3, FileText, Lightbulb, Heart } from "lucide-react";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -30,12 +30,6 @@ const Sidebar = () => {
       label: "Reports",
       path: "/reports",
       active: location.pathname === "/reports",
-    },
-    {
-      icon: UserCog,
-      label: "Admin Profile",
-      path: "/admin",
-      active: location.pathname === "/admin",
     },
   ];
 

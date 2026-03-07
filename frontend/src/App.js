@@ -9,6 +9,8 @@ import { AuthProvider, ProtectedRoute } from "./contexts/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import LandingPage from "./pages/LandingPage";
+import ModuleDashboard from "./pages/ModuleDashboard";
+import ProfilePage from "./pages/ProfilePage";
 import Component1Info from "./pages/Component1Info";
 import Component2Info from "./pages/Component2Info";
 import Component3Info from "./pages/Component3Info";
@@ -55,6 +57,24 @@ function App() {
             {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/home" element={<LandingPage />} />
+
+            {/* Central module selection dashboard (protected) */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <ModuleDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
@@ -165,10 +185,6 @@ function App() {
             </Route>
 
             {/* Legacy redirects for Donor Matching */}
-            <Route
-              path="/dashboard"
-              element={<Navigate to="/app/dashboard" replace />}
-            />
             <Route
               path="/admin-profile"
               element={<Navigate to="/app/admin-profile" replace />}

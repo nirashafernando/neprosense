@@ -14,7 +14,11 @@ import {
     Calendar,
     Shield,
     CheckCircle,
-    PlayCircle
+    PlayCircle,
+    Droplet,
+    Image,
+    TrendingUp,
+    Microscope
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../lib/axios";
@@ -46,10 +50,17 @@ const AdminProfile = () => {
     const [fetchingStats, setFetchingStats] = useState(true);
     const [error, setError] = useState(null);
     const [showOnboarding, setShowOnboarding] = useState(false);
+    const [moduleStats, setModuleStats] = useState({
+        urineAnalyses: 0,
+        ultrasoundScans: 0,
+        lifestyleEntries: 0,
+        lifestyleHighRisk: 0,
+    });
 
     useEffect(() => {
         fetchStats();
         fetchProfileData();
+        fetchModuleStats();
     }, []);
 
     const fetchProfileData = async () => {
@@ -94,6 +105,38 @@ const AdminProfile = () => {
         } catch (err) {
             console.error("Error fetching stats:", err);
             setFetchingStats(false);
+        }
+    };
+
+    const fetchModuleStats = async () => {
+        // Urine & Ultrasound from localStorage
+        try {
+            const urineHistory = JSON.parse(localStorage.getItem("nephro_history") || "[]");
+            const ultrasoundHistory = JSON.parse(localStorage.getItem("nephrosense_history") || "[]");
+
+            let lifestyleEntries = 0;
+            let lifestyleHighRisk = 0;
+            try {
+                const res = await fetch("http://localhost:8080/api/lifestyle/view-data");
+                if (res.ok) {
+                    const data = await res.json();
+                    lifestyleEntries = Array.isArray(data) ? data.length : 0;
+                    lifestyleHighRisk = Array.isArray(data) ? data.filter(item => {
+                        const water = item["Water (L)"] || item.water || 2;
+                        const calories = item["Calories (kcal)"] || item.calories || 2000;
+                        return water < 1.5 || calories > 2500;
+                    }).length : 0;
+                }
+            } catch (_) { /* lifestyle service may be offline */ }
+
+            setModuleStats({
+                urineAnalyses: urineHistory.length,
+                ultrasoundScans: ultrasoundHistory.length,
+                lifestyleEntries,
+                lifestyleHighRisk,
+            });
+        } catch (err) {
+            console.error("Error fetching module stats:", err);
         }
     };
 
@@ -183,36 +226,109 @@ const AdminProfile = () => {
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {statsCards.map((stat, index) => {
-                    const Icon = stat.icon;
-                    return (
-                        <div
-                            key={index}
-                            className={`${stat.bgColor} rounded-xl p-6 border-2 border-slate-200 shadow-md hover:shadow-lg transition-all relative overflow-hidden`}
-                        >
-                            <div className="absolute top-0 right-0 w-20 h-20 bg-white/20 rounded-full -mr-10 -mt-10"></div>
-                            <div className="relative flex items-center justify-between">
-                                <div>
-                                    <p className="text-slate-600 text-xs font-bold mb-2 uppercase tracking-wide">
-                                        {stat.title}
-                                    </p>
-                                    <p className="text-4xl font-bold text-slate-900">
-                                        {fetchingStats ? (
-                                            <Loader className="w-10 h-10 animate-spin text-slate-400" strokeWidth={2.5} />
-                                        ) : (
-                                            stat.value
-                                        )}
-                                    </p>
-                                </div>
-                                <div className={`${stat.iconBg} p-4 rounded-xl shadow-sm`}>
-                                    <Icon className={`w-8 h-8 ${stat.iconColor}`} strokeWidth={2.5} />
-                                </div>
+            {/* Module Activity Insights */}
+            <div className="mb-8">
+                <div className="flex items-center gap-2 mb-5">
+                    <div className="w-1 h-6 bg-medical-500 rounded-full"></div>
+                    <h2 className="text-lg font-bold text-slate-700 uppercase tracking-wide">Module Activity Insights</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+
+                    {/* Stage 1 — Urine Test Analysis */}
+                    <div className="bg-white rounded-xl border-2 border-slate-200 shadow-md overflow-hidden">
+                        <div className="bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-3 flex items-center gap-2">
+                            <div className="bg-white/20 p-1.5 rounded-lg">
+                                <Droplet className="w-4 h-4 text-white" strokeWidth={2.5} />
+                            </div>
+                            <div>
+                                <p className="text-white text-xs font-black uppercase tracking-wide">Stage 1</p>
+                                <p className="text-cyan-100 text-xs font-medium">Urine Test Analysis</p>
                             </div>
                         </div>
-                    );
-                })}
+                        <div className="p-4 space-y-3">
+                            <div className="flex items-center justify-between bg-cyan-50 rounded-lg px-3 py-2">
+                                <p className="text-slate-600 text-xs font-bold uppercase tracking-wide">Total Analyses</p>
+                                <p className="text-2xl font-bold text-slate-900">{moduleStats.urineAnalyses}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Stage 2 — Ultrasound Imaging */}
+                    <div className="bg-white rounded-xl border-2 border-slate-200 shadow-md overflow-hidden">
+                        <div className="bg-gradient-to-r from-purple-500 to-indigo-500 px-4 py-3 flex items-center gap-2">
+                            <div className="bg-white/20 p-1.5 rounded-lg">
+                                <Image className="w-4 h-4 text-white" strokeWidth={2.5} />
+                            </div>
+                            <div>
+                                <p className="text-white text-xs font-black uppercase tracking-wide">Stage 2</p>
+                                <p className="text-purple-100 text-xs font-medium">Clinical Image Analysis</p>
+                            </div>
+                        </div>
+                        <div className="p-4 space-y-3">
+                            <div className="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-2">
+                                <p className="text-slate-600 text-xs font-bold uppercase tracking-wide">Total Scans</p>
+                                <p className="text-2xl font-bold text-slate-900">{moduleStats.ultrasoundScans}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Stage 3 — Lifestyle Prediction */}
+                    <div className="bg-white rounded-xl border-2 border-slate-200 shadow-md overflow-hidden">
+                        <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 flex items-center gap-2">
+                            <div className="bg-white/20 p-1.5 rounded-lg">
+                                <TrendingUp className="w-4 h-4 text-white" strokeWidth={2.5} />
+                            </div>
+                            <div>
+                                <p className="text-white text-xs font-black uppercase tracking-wide">Stage 3</p>
+                                <p className="text-amber-100 text-xs font-medium">Lifestyle Prediction</p>
+                            </div>
+                        </div>
+                        <div className="p-4 space-y-3">
+                            <div className="flex items-center justify-between bg-amber-50 rounded-lg px-3 py-2">
+                                <p className="text-slate-600 text-xs font-bold uppercase tracking-wide">Records Logged</p>
+                                <p className="text-2xl font-bold text-slate-900">{moduleStats.lifestyleEntries}</p>
+                            </div>
+                            <div className="flex items-center justify-between bg-red-50 rounded-lg px-3 py-2">
+                                <p className="text-slate-600 text-xs font-bold uppercase tracking-wide">High Risk Flags</p>
+                                <p className="text-2xl font-bold text-red-600">{moduleStats.lifestyleHighRisk}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Stage 4 — Donor Matching */}
+                    <div className="bg-white rounded-xl border-2 border-slate-200 shadow-md overflow-hidden">
+                        <div className="bg-gradient-to-r from-medical-600 to-teal-600 px-4 py-3 flex items-center gap-2">
+                            <div className="bg-white/20 p-1.5 rounded-lg">
+                                <Heart className="w-4 h-4 text-white" strokeWidth={2.5} />
+                            </div>
+                            <div>
+                                <p className="text-white text-xs font-black uppercase tracking-wide">Stage 4</p>
+                                <p className="text-medical-100 text-xs font-medium">Intelligent Donor Matching</p>
+                            </div>
+                        </div>
+                        <div className="p-4 space-y-3">
+                            <div className="flex items-center justify-between bg-medical-50 rounded-lg px-3 py-2">
+                                <p className="text-slate-600 text-xs font-bold uppercase tracking-wide">Predictions</p>
+                                <p className="text-2xl font-bold text-slate-900">
+                                    {fetchingStats ? <Loader className="w-5 h-5 animate-spin text-slate-400" /> : stats.totalPredictions}
+                                </p>
+                            </div>
+                            <div className="flex items-center justify-between bg-red-50 rounded-lg px-3 py-2">
+                                <p className="text-slate-600 text-xs font-bold uppercase tracking-wide">Donors</p>
+                                <p className="text-2xl font-bold text-slate-900">
+                                    {fetchingStats ? <Loader className="w-5 h-5 animate-spin text-slate-400" /> : stats.donorsCount}
+                                </p>
+                            </div>
+                            <div className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
+                                <p className="text-slate-600 text-xs font-bold uppercase tracking-wide">Recipients</p>
+                                <p className="text-2xl font-bold text-slate-900">
+                                    {fetchingStats ? <Loader className="w-5 h-5 animate-spin text-slate-400" /> : stats.recipientsCount}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
             {/* Profile Section */}
@@ -235,14 +351,7 @@ const AdminProfile = () => {
                             </div>
                         </div>
                         
-                        {/* Restart Tutorial Button */}
-                        <button
-                            onClick={handleRestartTutorial}
-                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all border-2 border-white/30 font-medium shadow-md hover:shadow-lg"
-                        >
-                            <PlayCircle className="w-5 h-5" strokeWidth={2.5} />
-                            <span>Restart Tutorial</span>
-                        </button>
+
                     </div>
                 </div>
 
