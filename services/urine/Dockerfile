@@ -8,6 +8,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+# Install CPU-only PyTorch first – prevents ultralytics from pulling 700 MB+ of NVIDIA CUDA libs
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Note: path has a space – JSON array form required
