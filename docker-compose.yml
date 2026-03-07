@@ -46,8 +46,8 @@ services:
     ports:
       - "5001:5001"
     volumes:
-      # Persist the SQLite database across container restarts
-      - lifestyle_data:/app
+      # Persist only the SQLite database, not the whole /app (which would override the image code)
+      - lifestyle_data:/app/data
 
   # ── Donor Matching ML (FastAPI + scikit-learn) ────────────────────────────
   donor-ml:

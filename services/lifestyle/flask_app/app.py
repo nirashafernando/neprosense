@@ -20,8 +20,11 @@ except Exception as e:
 
 
 
+import os
+os.makedirs('data', exist_ok=True)
+
 def init_db():
-    conn = sqlite3.connect('lifestyle.db')
+    conn = sqlite3.connect('data/lifestyle.db')
     c = conn.cursor()
     
     c.execute('''CREATE TABLE IF NOT EXISTS entries
@@ -123,7 +126,7 @@ def save_entry():
     
     data = request.json
     try:
-        conn = sqlite3.connect('lifestyle.db')
+        conn = sqlite3.connect('data/lifestyle.db')
         c = conn.cursor()
         
       
@@ -150,7 +153,7 @@ def save_entry():
 @app.route('/view-data', methods=['GET'])
 def view_data():
     try:
-        conn = sqlite3.connect('lifestyle.db')
+        conn = sqlite3.connect('data/lifestyle.db')
         c = conn.cursor()
         c.execute("SELECT * FROM entries")
         rows = c.fetchall()
@@ -178,4 +181,4 @@ def health():
     return jsonify({"status": "ok", "service": "lifestyle", "port": 5001})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True, port=5001)
+    app.run(host='0.0.0.0', port=5001)
