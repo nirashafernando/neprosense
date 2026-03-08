@@ -1,0 +1,115 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  NephroSense – full-stack Docker Compose
+#
+#  Start everything: docker-compose up --build
+#  Stop & clean:     docker-compose down
+#  Reset all data:   docker-compose down -v
+#
+#  Ports exposed on the host:
+#    3000  → React frontend
+#    8080  → API Gateway  (use this from the browser for all API calls)
+#    5000  → Donor Matching backend  (Node/Express + MongoDB Atlas)
+#    8000  → Donor Matching ML       (FastAPI)
+#    5001  → Lifestyle service       (Flask)
+#    5002  → Ultrasound service      (Flask + TensorFlow 2.x on Python 3.12)
+#    5003  → Urine service           (Flask + YOLO)
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Urine Analysis (YOLO) ─────────────────────────────────────────────────
+  urine:
+    build:
+      context: ./services/urine
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5003:5003"
+
+  # ── Ultrasound Analysis (TensorFlow – requires Python 3.12) ───────────────
+  ultrasound:
+    build:
+      context: ./services/ultrasound
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+
+  # ── Lifestyle Prediction (scikit-learn + SQLite) ───────────────────────────
+  lifestyle:
+    build:
+      context: ./services/lifestyle
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      # Persist only the SQLite database, not the whole /app (which would override the image code)
+      - lifestyle_data:/app/data
+
+  # ── Donor Matching ML (FastAPI + scikit-learn) ────────────────────────────
+  donor-ml:
+    build:
+      context: ./services/donor-matching/ml-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+
+  # ── Donor Matching Backend (Node.js + MongoDB Atlas) ─────────────────────
+  donor-backend:
+    build:
+      context: ./services/donor-matching/backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # Reads MONGODB_URI and JWT_SECRET from .env (copy from .env.example)
+    env_file:
+      - path: ./services/donor-matching/backend/.env
+        required: false
+    environment:
+      # Override localhost URL so it points to the donor-ml container
+      - ML_SERVICE_URL=http://donor-ml:8000
+      - NODE_ENV=production
+    ports:
+      - "5000:5000"
+    depends_on:
+      - donor-ml
+
+  # ── API Gateway (Express proxy) ───────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - PORT=8080
+      # Use Docker service names instead of localhost
+      - DONOR_MATCHING_BACKEND_URL=http://donor-backend:5000
+      - DONOR_MATCHING_ML_URL=http://donor-ml:8000
+      - LIFESTYLE_SERVICE_URL=http://lifestyle:5001
+      - ULTRASOUND_SERVICE_URL=http://ultrasound:5002
+      - URINE_SERVICE_URL=http://urine:5003
+    ports:
+      - "8080:8080"
+    depends_on:
+      - donor-backend
+      - donor-ml
+      - lifestyle
+      - ultrasound
+      - urine
+
+  # ── React Frontend (nginx) ────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+
+volumes:
+  lifestyle_data:

@@ -37,13 +37,15 @@ app.get('/gateway/services', (_req, res) => {
 });
 
 // ── Register proxy routes for every service ───────────────────────────────────
+// Use pathFilter (not app.use(route, ...)) so Express does NOT strip the prefix.
+// This ensures the full path (e.g. /api/auth/login) is forwarded to the backend.
 for (const [, svc] of Object.entries(services)) {
   for (const route of svc.routes) {
     app.use(
-      route,
       createProxyMiddleware({
         target: svc.target,
         changeOrigin: true,
+        pathFilter: route,
         pathRewrite: svc.pathRewrite || undefined,
         on: {
           error: (err, _req, res) => {
