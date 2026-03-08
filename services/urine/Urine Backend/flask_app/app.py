@@ -29,7 +29,6 @@ def get_detailed_analysis(name, hsv):
     status = "NORMAL"
     normal_range = "Negative"
 
-    # Clinical range logic with descriptive Normal Ranges
     if name == "Leukocytes":
         normal_range = "Negative (< 10 cells/µL)"
         if s > 75: result, status = "Positive", "ABNORMAL"
@@ -73,7 +72,6 @@ def evaluate_total_risk(final_data):
     has_blood = any(i['pad'] == 'Blood' and i['status'] == 'ABNORMAL' for i in final_data)
     has_protein = any(i['pad'] == 'Protein' and i['status'] == 'ABNORMAL' for i in final_data)
 
-    # Risk evaluation logic
     if has_blood and has_protein: return "HIGH RISK (CKD INDICATION)"
     if abnormal_count >= 5: return "HIGH RISK"
     if 3 <= abnormal_count <= 4: return "MODERATE RISK"
@@ -92,20 +90,31 @@ def predict():
         img = cv2.imread(filepath)
         if img is None: return jsonify({'success': False, 'error': 'Failed to read image'}), 400
 
-        results = yolo_model(img, conf=0.25)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if np.mean(gray) > 245 or np.mean(gray) < 10:
+            return jsonify({'success': False, 'error': 'Invalid image. Please upload a clear photo of the urine strip.'}), 400
+
+    
+        results = yolo_model(img, conf=0.4) 
         pads_coords = []
+        
         for r in results:
+            if len(r.boxes) < 5: 
+                return jsonify({'success': False, 'error': 'Garbage image or invalid urine strip detected. Please try again.'}), 400
+                
             for box in r.boxes:
                 x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
                 pads_coords.append({"coords": (x1, y1, x2, y2), "cx": (x1 + x2) / 2, "cy": (y1 + y2) / 2})
 
-        if not pads_coords: return jsonify({'success': False, 'error': 'No biomarkers detected'}), 404
+       
+        if len(pads_coords) < 3: 
+            return jsonify({'success': False, 'error': 'No valid urine strip detected. Please ensure the strip is clearly visible.'}), 400
 
-        # Vertical sort to match the strip order
         pads_coords.sort(key=lambda p: p['cy']) 
         
         final_results = []
         for i, p in enumerate(pads_coords[:10]):
+            if i >= len(BIOMARKERS): break 
             name = BIOMARKERS[i]
             x1, y1, x2, y2 = p['coords']
             roi = img[y1:y2, x1:x2]
@@ -130,9 +139,5 @@ def predict():
     finally:
         if os.path.exists(filepath): os.remove(filepath)
 
-@app.route('/health', methods=['GET'])
-def health():
-    return jsonify({"status": "ok", "service": "urine", "port": 5003})
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5003, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
