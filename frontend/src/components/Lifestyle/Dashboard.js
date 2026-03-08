@@ -22,8 +22,22 @@ const Dashboard = () => {
   });
 
   const [recentEntries, setRecentEntries] = useState([]);
-
   const [riskDistribution, setRiskDistribution] = useState({
+    low: 0,
+    moderate: 0,
+    high: 0,
+  });
+
+  // Animated values for stats cards
+  const [animatedStats, setAnimatedStats] = useState({
+    totalEntries: 0,
+    riskAssessments: 0,
+    positiveTrends: 0,
+    activeUsers: 1,
+  });
+
+  // Animated values for risk distribution bars
+  const [animatedRisk, setAnimatedRisk] = useState({
     low: 0,
     moderate: 0,
     high: 0,
@@ -63,20 +77,28 @@ const Dashboard = () => {
             };
           });
 
-          setStats({
+          const newStats = {
             totalEntries: total,
             riskAssessments: total,
             positiveTrends: Math.floor(low / (total || 1) * 100),
             activeUsers: 1,
-          });
+          };
 
-          setRiskDistribution({
+          const newRiskDistribution = {
             low: total ? Math.round((low / total) * 100) : 0,
             moderate: total ? Math.round((mod / total) * 100) : 0,
             high: total ? Math.round((high / total) * 100) : 0,
-          });
+          };
 
+          setStats(newStats);
+          setRiskDistribution(newRiskDistribution);
           setRecentEntries(processedEntries.slice(-4).reverse());
+
+          // Animate stats cards counting up
+          animateStats(newStats);
+          
+          // Animate risk distribution bars
+          animateRiskBars(newRiskDistribution);
         }
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
@@ -88,38 +110,89 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
+  // Animate stats cards counting up
+  const animateStats = (targetStats) => {
+    const duration = 1500; // 1.5 seconds
+    const steps = 60;
+    const interval = duration / steps;
+    let step = 0;
+
+    const timer = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      
+      setAnimatedStats({
+        totalEntries: Math.min(Math.round(targetStats.totalEntries * progress), targetStats.totalEntries),
+        riskAssessments: Math.min(Math.round(targetStats.riskAssessments * progress), targetStats.riskAssessments),
+        positiveTrends: Math.min(Math.round(targetStats.positiveTrends * progress), targetStats.positiveTrends),
+        activeUsers: targetStats.activeUsers,
+      });
+
+      if (step >= steps) {
+        clearInterval(timer);
+      }
+    }, interval);
+  };
+
+  // Animate risk distribution bars
+  const animateRiskBars = (targetRisk) => {
+    const duration = 1000; // 1 second
+    const steps = 40;
+    const interval = duration / steps;
+    let step = 0;
+
+    const timer = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      
+      setAnimatedRisk({
+        low: Math.min(Math.round(targetRisk.low * progress), targetRisk.low),
+        moderate: Math.min(Math.round(targetRisk.moderate * progress), targetRisk.moderate),
+        high: Math.min(Math.round(targetRisk.high * progress), targetRisk.high),
+      });
+
+      if (step >= steps) {
+        clearInterval(timer);
+      }
+    }, interval);
+  };
+
   const statCards = [
     {
       title: "Total Lifestyle Entries",
-      value: stats.totalEntries,
+      value: animatedStats.totalEntries,
       subtitle: "Tracked records",
       icon: Calendar,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
+      delay: 0.1,
     },
     {
       title: "Assessments Done",
-      value: stats.riskAssessments,
+      value: animatedStats.riskAssessments,
       subtitle: "Risk evaluations",
       icon: Activity,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
+      delay: 0.2,
     },
     {
       title: "Health Score",
-      value: `${stats.positiveTrends}%`,
+      value: `${animatedStats.positiveTrends}%`,
       subtitle: "Low-risk ratio",
       icon: TrendingUp,
       color: "text-medical-600",
       bgColor: "bg-medical-50",
+      delay: 0.3,
     },
     {
       title: "Active Users",
-      value: stats.activeUsers,
+      value: animatedStats.activeUsers,
       subtitle: "Currently monitoring",
       icon: Users,
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
+      delay: 0.4,
     },
   ];
 
@@ -137,12 +210,12 @@ const Dashboard = () => {
       <div className="p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
 
-          {/* Welcome Header */}
-          <div className="mb-6">
+          {/* Welcome Header with fade-in - FIXED */}
+          <div className="mb-6 animate-fadeIn">
             <div className="bg-white rounded-xl shadow-md border border-slate-200 p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="bg-gradient-to-br from-medical-500 to-medical-700 p-3 rounded-xl shadow-lg">
+                  <div className="bg-gradient-to-br from-medical-500 to-medical-700 p-3 rounded-xl shadow-lg animate-pulse-subtle">
                     <Activity className="w-7 h-7 text-white" strokeWidth={2.5} />
                   </div>
                   <div>
@@ -158,12 +231,16 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Stat Cards */}
+          {/* Stat Cards with slide-up and count animations */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {statCards.map((stat, index) => (
-              <div key={index} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6">
+              <div 
+                key={index} 
+                className="bg-white rounded-xl shadow-sm p-6 animate-slideUp"
+                style={{ animationDelay: `${stat.delay}s` }}
+              >
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-lg ${stat.bgColor}`}>
+                  <div className={`p-3 rounded-lg ${stat.bgColor} transition-all duration-300`}>
                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
                 </div>
@@ -171,17 +248,19 @@ const Dashboard = () => {
                 {loading ? (
                   <div className="h-9 bg-gray-200 rounded w-3/4 animate-pulse mb-1"></div>
                 ) : (
-                  <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
+                  <p className="text-3xl font-bold text-gray-900 mb-1 transition-all duration-300">
+                    {stat.value}
+                  </p>
                 )}
                 <p className="text-sm text-gray-500">{stat.subtitle}</p>
               </div>
             ))}
           </div>
 
-          {/* CTA Banner */}
-          <div className="bg-gradient-to-br from-medical-600 via-medical-700 to-teal-600 rounded-xl shadow-xl p-6 md:p-8 mb-6 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
+          {/* CTA Banner with fade-in */}
+          <div className="bg-gradient-to-br from-medical-600 via-medical-700 to-teal-600 rounded-xl shadow-xl p-6 md:p-8 mb-6 text-white relative overflow-hidden animate-fadeIn" style={{ animationDelay: '0.5s' }}>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 animate-pulse-slow"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24 animate-pulse-slower"></div>
             <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex-1">
                 <h2 className="text-2xl md:text-3xl font-bold mb-2">Start Tracking Today's Lifestyle</h2>
@@ -192,14 +271,14 @@ const Dashboard = () => {
                   onClick={() => navigate('/lifestyle/tracker')}
                   className="bg-white text-medical-700 px-6 py-3 rounded-lg font-bold hover:bg-medical-50 transition-all shadow-lg flex items-center gap-2 text-base group"
                 >
-                  <Heart className="w-5 h-5 group-hover:scale-110 transition-transform" strokeWidth={2.5} />
+                  <Heart className="w-5 h-5" strokeWidth={2.5} />
                   Go to Lifestyle Tracker
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" strokeWidth={2.5} />
                 </button>
               </div>
               <div className="hidden md:block">
                 <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 shadow-2xl">
-                  <Activity className="w-20 h-20 text-white opacity-80" strokeWidth={2} />
+                  <Activity className="w-20 h-20 text-white opacity-80 animate-float" strokeWidth={2} />
                 </div>
               </div>
             </div>
@@ -207,7 +286,8 @@ const Dashboard = () => {
 
           {/* Risk Distribution + Recent Entries */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-5">
+            {/* Risk Distribution with animated bars */}
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-5 animate-slideUp" style={{ animationDelay: '0.3s' }}>
               <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <div className="p-1.5 bg-medical-100 rounded-lg">
                   <TrendingUp className="w-4 h-4 text-medical-600" />
@@ -215,27 +295,30 @@ const Dashboard = () => {
                 Risk Distribution (Real-time)
               </h2>
               <div className="space-y-4">
-                {Object.entries(riskDistribution).map(([risk, percentage]) => (
+                {Object.entries(riskDistribution).map(([risk, percentage], idx) => (
                   <div key={risk} className="space-y-2">
                     <div className="flex justify-between">
                       <span className="font-medium text-slate-700 capitalize">{risk} Risk</span>
-                      <span className="font-semibold text-slate-900">{percentage}%</span>
+                      <span className="font-semibold text-slate-900">{animatedRisk[risk]}%</span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2">
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                       <div
-                        className={`h-2 rounded-full transition-all duration-500 ${
+                        className={`h-2 rounded-full transition-all duration-1000 ease-out ${
                           risk === 'low' ? 'bg-green-500' :
                           risk === 'moderate' ? 'bg-yellow-500' : 'bg-red-500'
                         }`}
-                        style={{ width: `${percentage}%` }}
-                      />
+                        style={{ width: `${animatedRisk[risk]}%` }}
+                      >
+                        <div className="w-full h-full bg-white/20 animate-pulse"></div>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-5">
+            {/* Recent Entries with staggered slide-up */}
+            <div className="bg-white rounded-xl shadow-md border border-slate-200 p-5 animate-slideUp" style={{ animationDelay: '0.4s' }}>
               <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <div className="p-1.5 bg-blue-100 rounded-lg">
                   <Calendar className="w-4 h-4 text-blue-600" />
@@ -252,8 +335,12 @@ const Dashboard = () => {
                 <p className="text-slate-500 text-sm">No entries found. Start tracking!</p>
               ) : (
                 <div className="space-y-3">
-                  {recentEntries.map((entry) => (
-                    <div key={entry.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  {recentEntries.map((entry, idx) => (
+                    <div 
+                      key={entry.id} 
+                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200 animate-slideInRight"
+                      style={{ animationDelay: `${0.5 + (idx * 0.1)}s` }}
+                    >
                       <div>
                         <p className="font-semibold text-slate-900 text-sm">{entry.user}</p>
                         <div className="flex items-center gap-4 mt-1 text-xs text-slate-500">
@@ -272,8 +359,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-md border border-slate-200 p-5 mb-6">
+          {/* Quick Actions with staggered animations */}
+          <div className="bg-white rounded-xl shadow-md border border-slate-200 p-5 mb-6 animate-slideUp" style={{ animationDelay: '0.5s' }}>
             <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
               <div className="p-1.5 bg-medical-100 rounded-lg">
                 <svg className="w-4 h-4 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,58 +370,115 @@ const Dashboard = () => {
               Quick Actions
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <button
-                onClick={() => navigate("/lifestyle/tracker")}
-                className="bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-300 p-4 rounded-lg transition-all group shadow-sm hover:shadow-md"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-3 rounded-xl mb-2 group-hover:scale-110 transition-transform shadow-md">
-                    <Activity className="w-6 h-6 text-white" strokeWidth={2.5} />
+              {[
+                { path: "/lifestyle/tracker", label: "Daily Tracker", icon: Activity, color: "blue", delay: 0.6 },
+                { path: "/lifestyle/insights", label: "View Insights", icon: TrendingUp, color: "purple", delay: 0.7 },
+                { path: "/lifestyle/risk-prediction", label: "Risk Analysis", icon: AlertCircle, color: "rose", delay: 0.8 },
+                { path: "/lifestyle/summary", label: "Data Summary", icon: Calendar, color: "emerald", delay: 0.9 },
+              ].map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => navigate(item.path)}
+                  className={`bg-gradient-to-br from-${item.color}-50 to-${item.color}-100 hover:from-${item.color}-100 hover:to-${item.color}-200 border-2 border-${item.color}-300 p-4 rounded-lg transition-all group shadow-sm animate-slideUp`}
+                  style={{ animationDelay: `${item.delay}s` }}
+                >
+                  <div className="flex flex-col items-center">
+                    <div className={`bg-gradient-to-br from-${item.color}-600 to-${item.color}-700 p-3 rounded-xl mb-2 shadow-md`}>
+                      <item.icon className="w-6 h-6 text-white" strokeWidth={2.5} />
+                    </div>
+                    <span className="font-bold text-slate-900 text-sm">{item.label}</span>
                   </div>
-                  <span className="font-bold text-slate-900 text-sm">Daily Tracker</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => navigate("/lifestyle/insights")}
-                className="bg-gradient-to-br from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 border-2 border-purple-300 p-4 rounded-lg transition-all group shadow-sm hover:shadow-md"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-3 rounded-xl mb-2 group-hover:scale-110 transition-transform shadow-md">
-                    <TrendingUp className="w-6 h-6 text-white" strokeWidth={2.5} />
-                  </div>
-                  <span className="font-bold text-slate-900 text-sm">View Insights</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => navigate("/lifestyle/risk-prediction")}
-                className="bg-gradient-to-br from-rose-50 to-red-50 hover:from-rose-100 hover:to-red-100 border-2 border-rose-300 p-4 rounded-lg transition-all group shadow-sm hover:shadow-md"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="bg-gradient-to-br from-rose-600 to-red-700 p-3 rounded-xl mb-2 group-hover:scale-110 transition-transform shadow-md">
-                    <AlertCircle className="w-6 h-6 text-white" strokeWidth={2.5} />
-                  </div>
-                  <span className="font-bold text-slate-900 text-sm">Risk Analysis</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => navigate("/lifestyle/summary")}
-                className="bg-gradient-to-br from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border-2 border-emerald-300 p-4 rounded-lg transition-all group shadow-sm hover:shadow-md"
-              >
-                <div className="flex flex-col items-center">
-                  <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-3 rounded-xl mb-2 group-hover:scale-110 transition-transform shadow-md">
-                    <Calendar className="w-6 h-6 text-white" strokeWidth={2.5} />
-                  </div>
-                  <span className="font-bold text-slate-900 text-sm">Data Summary</span>
-                </div>
-              </button>
+                </button>
+              ))}
             </div>
+          </div>
+
+          {/* Last updated indicator */}
+          <div className="text-center text-xs text-gray-400 animate-fadeIn" style={{ animationDelay: '1s' }}>
+            <p>⏱️ Dashboard updates automatically with new entries</p>
           </div>
 
         </div>
       </div>
+
+      {/* Animation Keyframes */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { 
+            opacity: 0; 
+            transform: translateY(-10px);
+          }
+          to { 
+            opacity: 1; 
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+        
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.1; }
+          50% { opacity: 0.15; }
+        }
+        
+        @keyframes pulse-slower {
+          0%, 100% { opacity: 0.05; }
+          50% { opacity: 0.1; }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.8s ease-out forwards;
+        }
+        
+        .animate-slideUp {
+          animation: slideUp 0.6s ease-out forwards;
+        }
+        
+        .animate-slideInRight {
+          animation: slideInRight 0.5s ease-out forwards;
+        }
+        
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        
+        .animate-pulse-slow {
+          animation: pulse-slow 3s ease-in-out infinite;
+        }
+        
+        .animate-pulse-slower {
+          animation: pulse-slower 4s ease-in-out infinite;
+        }
+        
+        .animate-pulse-subtle {
+          animation: pulse 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 };

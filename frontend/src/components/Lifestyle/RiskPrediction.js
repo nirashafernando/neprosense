@@ -92,7 +92,7 @@ const RiskPrediction = () => {
           nextSteps: generateNextSteps(riskLevel)
         });
 
-        setDebugInfo(null); // Clear debug info on success
+        setDebugInfo(null);
 
       } catch (error) {
         console.error("Error in fetchPrediction:", error);
@@ -292,7 +292,7 @@ const RiskPrediction = () => {
     return (
       <div className="p-6">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center animate-pulse">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Analyzing lifestyle data with ML model...</p>
           </div>
@@ -306,7 +306,7 @@ const RiskPrediction = () => {
       <div className="p-6">
         <div className="max-w-6xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4 animate-bounce" />
             <p className="text-red-600 mb-4">{error}</p>
             {debugInfo && (
               <div className="mt-4 p-4 bg-gray-100 rounded-lg text-left">
@@ -317,7 +317,7 @@ const RiskPrediction = () => {
             )}
             <button 
               onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 hover:scale-105"
             >
               Retry
             </button>
@@ -332,10 +332,11 @@ const RiskPrediction = () => {
   return (
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-600">
+        {/* Header with animation */}
+        <div className="mb-8 animate-fade-in-down">
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-600 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
             <div className="flex items-center space-x-3">
-              <div className="bg-blue-100 p-3 rounded-full">
+              <div className="bg-blue-100 p-3 rounded-full animate-pulse">
                 <Activity className="w-6 h-6 text-blue-500" />
               </div>
               <div>
@@ -350,45 +351,54 @@ const RiskPrediction = () => {
           </div>
         </div>
 
-        <div className={`bg-white rounded-xl shadow-lg p-8 border-4 ${colors.border} mb-8`}>
+        {/* Risk Level Card with animations */}
+        <div className={`bg-white rounded-xl shadow-lg p-8 border-4 ${colors.border} mb-8 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] animate-fade-in-up`}>
           <div className="text-center">
             <h2 className="text-xl font-bold text-gray-700 mb-4">Predicted CKD Risk Level</h2>
-            <div className={`inline-block px-12 py-6 ${colors.bg} text-white text-4xl font-bold rounded-2xl shadow-lg mb-6`}>
+            <div className={`inline-block px-12 py-6 ${colors.bg} text-white text-4xl font-bold rounded-2xl shadow-lg mb-6 animate-pulse hover:scale-110 transition-transform duration-300`}>
               {predictionData.riskLevel}
             </div>
             <p className="text-gray-600 mb-4">
-              Based on your lifestyle data, there is a <span className="font-bold">{predictionData.probability}%</span> probability of CKD progression risk
+              Based on your lifestyle data, there is a <span className={`font-bold ${colors.text} text-2xl`}>{predictionData.probability}%</span> probability of CKD progression risk
             </p>
             
-            <div className="w-full max-w-md mx-auto bg-gray-200 rounded-full h-4 mb-2">
+            {/* Animated progress bar */}
+            <div className="w-full max-w-md mx-auto bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
               <div 
-                className={`h-4 rounded-full transition-all duration-1000 ${colors.bg}`}
+                className={`h-4 rounded-full transition-all duration-1000 ${colors.bg} relative`}
                 style={{ width: `${predictionData.probability}%` }}
-              ></div>
+              >
+                <div className="absolute top-0 right-0 bottom-0 left-0 bg-white/20 animate-pulse"></div>
+              </div>
             </div>
             <div className="flex justify-between text-sm text-gray-500 px-2">
-              <span>Low Risk</span>
-              <span>Moderate Risk</span>
-              <span>High Risk</span>
+              <span className="hover:text-green-600 transition-colors cursor-default">Low Risk</span>
+              <span className="hover:text-yellow-600 transition-colors cursor-default">Moderate Risk</span>
+              <span className="hover:text-red-600 transition-colors cursor-default">High Risk</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+        {/* Risk Factors Card with animations */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 transition-all duration-300 hover:shadow-xl animate-fade-in-up" style={{animationDelay: '0.2s'}}>
           <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6 text-yellow-500" />
+            <AlertTriangle className="w-6 h-6 text-yellow-500 animate-bounce" />
             Key Risk Factors Identified
           </h2>
           
           {predictionData.factors.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No significant risk factors identified</p>
+            <p className="text-gray-500 text-center py-4 animate-pulse">No significant risk factors identified</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {predictionData.factors.map((factor, index) => (
-                <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div 
+                  key={index} 
+                  className="bg-gray-50 border border-gray-200 rounded-lg p-4 transition-all duration-300 hover:shadow-md hover:-translate-y-1 animate-fade-in-right"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-900">{factor.name}</h3>
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                    <span className={`px-2 py-1 rounded text-xs font-bold transition-all duration-300 hover:scale-110 ${
                       factor.impact === "High" ? "bg-red-100 text-red-700" :
                       factor.impact === "Medium" ? "bg-yellow-100 text-yellow-700" :
                       "bg-blue-100 text-blue-700"
@@ -403,38 +413,45 @@ const RiskPrediction = () => {
           )}
         </div>
 
-        <div className="text-center mb-6">
+        {/* Toggle Button with animation */}
+        <div className="text-center mb-6 animate-fade-in-up" style={{animationDelay: '0.3s'}}>
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 mx-auto"
+            className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center gap-2 mx-auto group"
           >
             {showDetails ? (
               <>
-                <ChevronUp className="w-5 h-5" />
+                <ChevronUp className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
                 Hide Detailed Insights
               </>
             ) : (
               <>
-                <ChevronDown className="w-5 h-5" />
+                <ChevronDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
                 View Detailed Insights
               </>
             )}
           </button>
         </div>
 
+        {/* Detailed Insights Section */}
         {showDetails && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="space-y-6">
+            {/* Personalized Recommendations */}
+            <div className="bg-white rounded-xl shadow-lg p-6 transition-all duration-500 hover:shadow-xl animate-fade-in-up">
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <CheckCircle className="w-6 h-6 text-green-500" />
+                <CheckCircle className="w-6 h-6 text-green-500 animate-pulse" />
                 Personalized Recommendations
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {predictionData.recommendations.map((rec, index) => (
-                  <div key={index} className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div 
+                    key={index} 
+                    className="bg-green-50 border border-green-200 rounded-lg p-4 transition-all duration-300 hover:shadow-md hover:-translate-y-1 animate-fade-in-right"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
                     <div className="flex items-start gap-3">
-                      <div className="bg-green-100 p-2 rounded">
+                      <div className="bg-green-100 p-2 rounded transition-transform duration-300 hover:scale-110">
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       </div>
                       <div>
@@ -446,16 +463,21 @@ const RiskPrediction = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6">
+            {/* Recommended Next Steps */}
+            <div className="bg-white rounded-xl shadow-lg p-6 transition-all duration-500 hover:shadow-xl animate-fade-in-up" style={{animationDelay: '0.1s'}}>
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-blue-500" />
+                <TrendingUp className="w-6 h-6 text-blue-500 animate-bounce" />
                 Recommended Next Steps
               </h2>
               
               <div className="space-y-3">
                 {predictionData.nextSteps.map((step, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="bg-blue-100 p-2 rounded">
+                  <div 
+                    key={index} 
+                    className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg transition-all duration-300 hover:shadow-md hover:-translate-y-1 animate-fade-in-right"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <div className="bg-blue-100 p-2 rounded transition-transform duration-300 hover:scale-110">
                       <span className="font-bold text-blue-600">{index + 1}</span>
                     </div>
                     <p className="text-blue-800">{step}</p>
@@ -464,9 +486,10 @@ const RiskPrediction = () => {
               </div>
             </div>
 
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-r-lg">
+            {/* Clinical Decision Support Tool Disclaimer */}
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-r-lg transition-all duration-300 hover:shadow-lg animate-fade-in-up" style={{animationDelay: '0.2s'}}>
               <div className="flex">
-                <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5 mr-3" />
+                <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5 mr-3 animate-pulse" />
                 <div>
                   <h3 className="text-lg font-bold text-yellow-900 mb-2">Clinical Decision Support Tool</h3>
                   <div className="text-yellow-800">
@@ -484,6 +507,55 @@ const RiskPrediction = () => {
           </div>
         )}
       </div>
+
+      {/* Add these animation classes to your global CSS or Tailwind config */}
+      <style jsx>{`
+        @keyframes fadeInDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeInRight {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .animate-fade-in-down {
+          animation: fadeInDown 0.6s ease-out;
+        }
+
+        .animate-fade-in-up {
+          animation: fadeInUp 0.6s ease-out;
+        }
+
+        .animate-fade-in-right {
+          animation: fadeInRight 0.5s ease-out forwards;
+          opacity: 0;
+        }
+      `}</style>
     </div>
   );
 };

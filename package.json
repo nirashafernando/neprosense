@@ -6,14 +6,17 @@
   "scripts": {
     "start": "concurrently --names \"donor-api,donor-ml,lifestyle,ultrasound,urine,gateway,frontend\" --prefix-colors \"green,yellow,magenta,cyan,blue,white,greenBright\" \"npm run service:donor-api\" \"npm run service:ml\" \"npm run service:lifestyle\" \"npm run service:ultrasound\" \"npm run service:urine\" \"npm run service:gateway\" \"npm run service:frontend\"",
     "service:donor-api": "npm --prefix services/donor-matching/backend run dev",
-    "service:ml":        "services\\donor-matching\\ml-service\\start.bat",
+    "service:ml": "services\\donor-matching\\ml-service\\start.bat",
     "service:lifestyle": "services\\lifestyle\\start.bat",
-    "service:ultrasound":"services\\ultrasound\\start.bat",
-    "service:urine":     "services\\urine\\start.bat",
-    "service:gateway":   "npm --prefix api-gateway run dev",
-    "service:frontend":  "npm --prefix frontend start"
+    "service:ultrasound": "services\\ultrasound\\start.bat",
+    "service:urine": "services\\urine\\start.bat",
+    "service:gateway": "npm --prefix api-gateway run dev",
+    "service:frontend": "npm --prefix frontend start"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "nephrosense": "file:"
   }
 }
