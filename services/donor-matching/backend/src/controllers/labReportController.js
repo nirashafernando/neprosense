@@ -1,279 +1,154 @@
-import Tesseract from 'tesseract.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
-// ─── Medical Parameter Extraction Patterns ───────────────────────────────────
-
-const BLOOD_GROUPS = ['AB+', 'AB-', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-'];
-
-const extractors = {
-  bloodGroup: (text) => {
-    // Match blood group patterns: "Blood Group: A+", "Blood Type: O-", "A Rh+"
-    const patterns = [
-      /blood\s*(?:group|type)\s*[:\-]?\s*(AB|A|B|O)\s*([+-])/i,
-      /(?:group|type)\s*[:\-]?\s*(AB|A|B|O)\s*([+-])/i,
-      /(AB|A|B|O)\s*(?:Rh)?\s*([+-])\s*(?:ve)?/i,
-      /\b(AB|A|B|O)\s*(positive|negative)\b/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const sign = (m[2] === 'positive' || m[2] === '+') ? '+' : '-';
-        const group = `${m[1].toUpperCase()}${sign}`;
-        if (BLOOD_GROUPS.includes(group)) return group;
-      }
-    }
-    return null;
-  },
-
-  creatinine: (text) => {
-    const patterns = [
-      /(?:serum\s*)?creatinine\s*[:\-]?\s*(\d+\.?\d*)\s*(?:mg\/d[lL])?/i,
-      /s\.?\s*creatinine\s*[:\-]?\s*(\d+\.?\d*)/i,
-      /creat(?:inine)?\s*[:\-]?\s*(\d+\.?\d*)/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const val = parseFloat(m[1]);
-        if (val >= 0.1 && val <= 20) return val.toString();
-      }
-    }
-    return null;
-  },
-
-  gfr: (text) => {
-    const patterns = [
-      /e?GFR\s*[:\-]?\s*(\d+\.?\d*)\s*(?:mL\/min)?/i,
-      /glomerular\s*filtration\s*rate\s*[:\-]?\s*(\d+\.?\d*)/i,
-      /estimated\s*GFR\s*[:\-]?\s*(\d+\.?\d*)/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const val = parseFloat(m[1]);
-        if (val >= 0 && val <= 200) return val.toString();
-      }
-    }
-    return null;
-  },
-
-  hlaTyping: (text) => {
-    // Match HLA patterns: "HLA: A1, A2, B7, B8, DR3, DR4" or "HLA-A1,A2,B7,B8,DR3,DR4"
-    const patterns = [
-      /HLA\s*(?:typing|type)?\s*[:\-]?\s*((?:[A-Z]+\d+[\s,;]+){5}[A-Z]+\d+)/i,
-      /HLA\s*[:\-]?\s*(A\d+[\s,;]+A\d+[\s,;]+B\d+[\s,;]+B\d+[\s,;]+DR\d+[\s,;]+DR\d+)/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        // Normalize: remove spaces, use commas
-        const cleaned = m[1].replace(/[\s;]+/g, ',').replace(/,+/g, ',').trim();
-        const parts = cleaned.split(',').filter(Boolean);
-        if (parts.length === 6) return parts.join(',').toUpperCase();
-      }
-    }
-    return null;
-  },
-
-  bloodPressure: (text) => {
-    // Returns { systolicBP, diastolicBP }
-    const patterns = [
-      /(?:blood\s*pressure|BP)\s*[:\-]?\s*(\d{2,3})\s*[\/]\s*(\d{2,3})\s*(?:mmHg)?/i,
-      /systolic\s*[:\-]?\s*(\d{2,3})[\s\S]*?diastolic\s*[:\-]?\s*(\d{2,3})/i,
-      /(\d{2,3})\s*\/\s*(\d{2,3})\s*(?:mmHg|mm\s*Hg)/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const sys = parseInt(m[1]);
-        const dia = parseInt(m[2]);
-        if (sys >= 60 && sys <= 250 && dia >= 40 && dia <= 150) {
-          return { systolicBP: sys.toString(), diastolicBP: dia.toString() };
-        }
-      }
-    }
-    return null;
-  },
-
-  bmi: (text) => {
-    const patterns = [
-      /BMI\s*[:\-]?\s*(\d+\.?\d*)\s*(?:kg\/m[²2])?/i,
-      /body\s*mass\s*index\s*[:\-]?\s*(\d+\.?\d*)/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const val = parseFloat(m[1]);
-        if (val >= 10 && val <= 70) return val.toFixed(1);
-      }
-    }
-    return null;
-  },
-
-  diabetes: (text) => {
-    const patterns = [
-      /\b(?:diabetes|diabetic|DM|type\s*[12]\s*diabetes|T[12]DM)\b/i,
-      /\bdiabetes\s*mellitus\b/i,
-      /\bDM\s*[:\-]?\s*(?:yes|positive|present|diagnosed)\b/i,
-    ];
-    for (const pat of patterns) {
-      if (pat.test(text)) return true;
-    }
-    // Check for explicit negatives
-    if (/\bno\s*diabetes\b/i.test(text) || /\bDM\s*[:\-]?\s*(?:no|negative|absent|nil)\b/i.test(text)) {
-      return false;
-    }
-    return null;
-  },
-
-  hypertension: (text) => {
-    const patterns = [
-      /\b(?:hypertension|hypertensive|HTN)\b/i,
-      /\bhigh\s*blood\s*pressure\b/i,
-      /\bHTN\s*[:\-]?\s*(?:yes|positive|present|diagnosed)\b/i,
-    ];
-    for (const pat of patterns) {
-      if (pat.test(text)) return true;
-    }
-    if (/\bno\s*hypertension\b/i.test(text) || /\bHTN\s*[:\-]?\s*(?:no|negative|absent|nil)\b/i.test(text)) {
-      return false;
-    }
-    return null;
-  },
-
-  // --- Recipient-only fields ---
-
-  pra: (text) => {
-    const patterns = [
-      /PRA\s*[:\-]?\s*(\d+\.?\d*)\s*%?/i,
-      /panel\s*reactive\s*antibod(?:y|ies)\s*[:\-]?\s*(\d+\.?\d*)\s*%?/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const val = parseFloat(m[1]);
-        if (val >= 0 && val <= 100) return val.toString();
-      }
-    }
-    return null;
-  },
-
-  dialysisYears: (text) => {
-    const patterns = [
-      /dialysis\s*(?:for|duration|years?)?\s*[:\-]?\s*(\d+\.?\d*)\s*(?:years?|yrs?)/i,
-      /on\s*dialysis\s*(?:for)?\s*(\d+\.?\d*)\s*(?:years?|yrs?)/i,
-      /dialysis\s*(?:years?|duration)\s*[:\-]?\s*(\d+\.?\d*)/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const val = parseFloat(m[1]);
-        if (val >= 0 && val <= 50) return val.toString();
-      }
-    }
-    return null;
-  },
-
-  previousTransplants: (text) => {
-    const patterns = [
-      /previous\s*transplants?\s*[:\-]?\s*(\d+)/i,
-      /prior\s*transplants?\s*[:\-]?\s*(\d+)/i,
-      /transplant\s*(?:history|count)\s*[:\-]?\s*(\d+)/i,
-      /number\s*of\s*(?:previous\s*)?transplants?\s*[:\-]?\s*(\d+)/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const val = parseInt(m[1]);
-        if (val >= 0 && val <= 10) return val.toString();
-      }
-    }
-    return null;
-  },
-
-  age: (text) => {
-    const patterns = [
-      /\bage\s*[:\-]?\s*(\d{1,3})\s*(?:years?|yrs?)?\b/i,
-      /(\d{1,3})\s*(?:years?\s*old|y\/?o)\b/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const val = parseInt(m[1]);
-        if (val >= 1 && val <= 90) return val.toString();
-      }
-    }
-    return null;
-  },
-
-  gender: (text) => {
-    const patterns = [
-      /\b(?:sex|gender)\s*[:\-]?\s*(male|female|m|f)\b/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const v = m[1].toLowerCase();
-        if (v === 'male' || v === 'm') return 'male';
-        if (v === 'female' || v === 'f') return 'female';
-      }
-    }
-    return null;
-  },
-
-  weight: (text) => {
-    const patterns = [
-      /\bweight\s*[:\-]?\s*(\d+\.?\d*)\s*(?:kg|kilograms?)?/i,
-      /\bwt\s*[:\-]?\s*(\d+\.?\d*)\s*(?:kg)?/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const val = parseFloat(m[1]);
-        if (val >= 10 && val <= 300) return val.toString();
-      }
-    }
-    return null;
-  },
-
-  height: (text) => {
-    const patterns = [
-      /\bheight\s*[:\-]?\s*(\d+\.?\d*)\s*(?:cm|centimeters?)?/i,
-      /\bht\s*[:\-]?\s*(\d+\.?\d*)\s*(?:cm)?/i,
-    ];
-    for (const pat of patterns) {
-      const m = text.match(pat);
-      if (m) {
-        const val = parseFloat(m[1]);
-        if (val >= 60 && val <= 250) return val.toString();
-      }
-    }
-    return null;
-  },
-};
-
-// Fields to extract per entity type
-const DONOR_FIELDS = [
-  'bloodGroup', 'creatinine', 'gfr', 'hlaTyping', 'bloodPressure',
-  'bmi', 'diabetes', 'hypertension', 'age', 'gender', 'weight', 'height',
-];
-
-const RECIPIENT_FIELDS = [
-  ...DONOR_FIELDS,
-  'pra', 'dialysisYears', 'previousTransplants',
-];
-
-// ─── OCR + Extraction Controller ─────────────────────────────────────────────
-
-async function ocrFile(fileBuffer) {
-  const { data: { text, confidence } } = await Tesseract.recognize(fileBuffer, 'eng', {
-    logger: (m) => {
-      if (m.status === 'recognizing text') {
-        console.log(`  OCR progress: ${(m.progress * 100).toFixed(0)}%`);
-      }
-    },
-  });
-  return { text, confidence };
+// ─── Gemini AI Setup (lazy — env vars not available at module load time in ESM)
+// dotenv.config() runs AFTER all ES module imports resolve, so we must
+// create the client on first use, not at module level.
+let _genAI = null;
+function getGenAI() {
+  if (!_genAI) {
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) throw new Error('GEMINI_API_KEY environment variable is not set.');
+    _genAI = new GoogleGenerativeAI(key);
+    console.log(`  [Gemini] Initialized with key ...${key.slice(-6)}`);
+  }
+  return _genAI;
 }
+
+// ─── Extraction Prompt ────────────────────────────────────────────────────────
+
+const EXTRACTION_PROMPT = `You are a medical data extraction assistant specializing in Sri Lankan hospital lab reports.
+
+Analyze this lab report carefully and extract ONLY values that are clearly the MEASURED TEST RESULTS.
+
+Return ONLY a valid JSON object with these exact keys. Use null for any value not found.
+
+{
+  "age": <patient age as integer, e.g. 63>,
+  "gender": <"male" or "female" — look for Sex/Gender field>,
+  "bloodGroup": <one of "A+","A-","B+","B-","AB+","AB-","O+","O-" or null>,
+  "creatinine": <SERUM CREATININE measured result value as number in mg/dL, NOT the reference range>,
+  "gfr": <eGFR or GFR MEASURED result value as number in mL/min/1.73m². IGNORE the CKD staging reference table (>90, 60-89, 45-59, 30-44 etc.) — extract only the patient's actual measured value>,
+  "bloodPressure": <blood pressure as "systolic/diastolic" string or null>,
+  "bmi": <BMI as number or null>,
+  "hlaTyping": <HLA typing result string or null>,
+  "pra": <PRA percentage as number or null>,
+  "dialysisYears": <years on dialysis as number or null>,
+  "previousTransplants": <number of previous transplants or null>,
+  "fastingGlucose": <FASTING PLASMA GLUCOSE result as number in mg/dL or null>,
+  "randomGlucose": <RANDOM PLASMA GLUCOSE or RBS result as number in mg/dL or null>,
+  "hba1c": <HbA1c percentage as number or null>,
+  "diabetes": <derive from glucose tests: true if fasting glucose >=126 OR random glucose >=200 OR HbA1c >=6.5, false if glucose test present but values below thresholds, null if no glucose test in report>,
+  "hypertension": <true if patient has hypertension noted, false if explicitly normal, null if not mentioned>,
+  "smoking": <true if patient smokes, false if non-smoker noted, null if not mentioned>
+}
+
+CRITICAL RULES:
+1. For GFR: the CKD staging table lists ranges (>90, 60-89, 45-59, 30-44, 15-29, <15). These are reference ranges. Extract ONLY the patient's actual GFR measurement on its own line (e.g. "GFR  32  mL/min").
+2. For creatinine: the reference range is usually "0.5-1.1". Extract ONLY the RESULT column value.
+3. Return ONLY the JSON object. No markdown. No explanation. No code blocks.`;
+
+// ─── PDF Text Extraction (no canvas needed) ───────────────────────────────────
+
+async function extractPdfText(pdfBuffer) {
+  const loadingTask = pdfjs.getDocument({
+    data: new Uint8Array(pdfBuffer),
+    verbosity: 0,
+  });
+  const pdf = await loadingTask.promise;
+  let fullText = '';
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const content = await page.getTextContent();
+
+    let lastY = null;
+    for (const item of content.items) {
+      if ('str' in item) {
+        const y = item.transform?.[5];
+        if (lastY !== null && Math.abs(y - lastY) > 5) {
+          fullText += '\n';
+        } else if (lastY !== null) {
+          fullText += ' ';
+        }
+        fullText += item.str;
+        lastY = y;
+      }
+    }
+    fullText += '\n';
+  }
+
+  return fullText.trim();
+}
+
+// ─── Gemini Extraction ────────────────────────────────────────────────────────
+
+async function extractWithGemini(input, mimeType) {
+  const model = getGenAI().getGenerativeModel({ model: 'gemini-flash-latest' });
+
+  let parts;
+  if (typeof input === 'string') {
+    // PDF text — send as text prompt
+    parts = [EXTRACTION_PROMPT + '\n\nLAB REPORT TEXT:\n' + input];
+  } else {
+    // Image buffer — send as vision
+    parts = [
+      EXTRACTION_PROMPT,
+      { inlineData: { data: input.toString('base64'), mimeType } },
+    ];
+  }
+
+  const result = await model.generateContent(parts);
+  const raw = result.response.text().trim();
+
+  // Strip markdown code fences if present
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error(`Gemini returned non-JSON: ${raw.slice(0, 200)}`);
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  console.log('  [Gemini] Raw extraction:', JSON.stringify(parsed));
+  return parsed;
+}
+
+// ─── Map Gemini output to form fields ────────────────────────────────────────
+
+const DONOR_FIELDS    = ['bloodGroup','creatinine','gfr','hlaTyping','bloodPressure','bmi','diabetes','hypertension','smoking','age','gender'];
+const RECIPIENT_FIELDS = [...DONOR_FIELDS, 'pra','dialysisYears','previousTransplants'];
+
+// Keys Gemini returns that map 1-to-1 to form fields
+const DIRECT_KEYS = new Set([
+  'age','gender','bloodGroup','creatinine','gfr','bloodPressure',
+  'bmi','hlaTyping','pra','dialysisYears','previousTransplants',
+  'diabetes','hypertension','smoking',
+]);
+
+function mapGeminiToFields(geminiData, targetFields) {
+  const extracted = {};
+  const notFound  = [];
+
+  // ── Derive diabetes if not directly returned ───────────────────────────────
+  if (geminiData.diabetes === null || geminiData.diabetes === undefined) {
+    const fg = geminiData.fastingGlucose;
+    const rg = geminiData.randomGlucose;
+    const a1c = geminiData.hba1c;
+    if (fg !== null && fg !== undefined)    geminiData.diabetes = fg >= 126;
+    else if (rg !== null && rg !== undefined) geminiData.diabetes = rg >= 200;
+    else if (a1c !== null && a1c !== undefined) geminiData.diabetes = a1c >= 6.5;
+  }
+
+  for (const field of targetFields) {
+    const val = geminiData[field];
+    if (val !== null && val !== undefined) {
+      extracted[field] = val;
+    } else {
+      notFound.push(field);
+    }
+  }
+
+  return { extracted, notFound };
+}
+
+// ─── Main Controller ──────────────────────────────────────────────────────────
 
 export const extractFromReport = async (req, res) => {
   try {
@@ -284,62 +159,81 @@ export const extractFromReport = async (req, res) => {
       });
     }
 
-    const type = req.body.type || 'donor'; // 'donor' or 'recipient'
-    const fieldsToExtract = type === 'recipient' ? RECIPIENT_FIELDS : DONOR_FIELDS;
+    const type   = req.body.type || 'donor';
+    const fields = type === 'recipient' ? RECIPIENT_FIELDS : DONOR_FIELDS;
 
     console.log(`\n📄 Processing ${req.files.length} lab report(s) for ${type}...`);
 
-    // OCR all uploaded files and combine text
-    let combinedText = '';
-    let avgConfidence = 0;
+    // Merge extractions from all uploaded files
+    let mergedGemini = {};
 
     for (const file of req.files) {
-      console.log(`  Processing: ${file.originalname} (${(file.size / 1024).toFixed(1)} KB)`);
-      const { text, confidence } = await ocrFile(file.buffer);
-      combinedText += '\n' + text;
-      avgConfidence += confidence;
-    }
+      console.log(`  Processing: ${file.originalname} (${(file.size / 1024).toFixed(1)} KB, ${file.mimetype})`);
 
-    avgConfidence = avgConfidence / req.files.length;
-    console.log(`  Combined text length: ${combinedText.length} chars, avg confidence: ${avgConfidence.toFixed(1)}%`);
+      const isPDF = file.mimetype === 'application/pdf';
+      let geminiData;
 
-    // Extract parameters
-    const extractedFields = {};
-    const notFound = [];
+      if (isPDF) {
+        console.log(`  [PDF] Extracting text layer...`);
+        const text = await extractPdfText(file.buffer);
 
-    for (const fieldName of fieldsToExtract) {
-      if (!extractors[fieldName]) continue;
-
-      const result = extractors[fieldName](combinedText);
-
-      if (fieldName === 'bloodPressure') {
-        // Special: bloodPressure returns { systolicBP, diastolicBP }
-        if (result) {
-          extractedFields.systolicBP = result.systolicBP;
-          extractedFields.diastolicBP = result.diastolicBP;
-        } else {
-          notFound.push('systolicBP', 'diastolicBP');
+        if (!text || text.length < 30) {
+          console.warn(`  [PDF] No text layer found — may be a scanned PDF.`);
+          return res.status(422).json({
+            success: false,
+            unreadable: true,
+            message: 'This PDF appears to be a scanned image without a text layer. Please upload the report as a JPG or PNG image instead.',
+          });
         }
-      } else if (result !== null && result !== undefined) {
-        extractedFields[fieldName] = result;
+
+        console.log(`  [PDF] Extracted ${text.length} chars. Sending to Gemini...`);
+        geminiData = await extractWithGemini(text, null);
       } else {
-        notFound.push(fieldName);
+        console.log(`  [Image] Sending to Gemini Vision...`);
+        geminiData = await extractWithGemini(file.buffer, file.mimetype);
+      }
+
+      // Merge: non-null values from later reports override earlier ones
+      for (const [k, v] of Object.entries(geminiData)) {
+        if (v !== null && v !== undefined) mergedGemini[k] = v;
       }
     }
 
+    // Map to form fields
+    const { extracted: extractedFields, notFound } = mapGeminiToFields(mergedGemini, fields);
+
     console.log(`  ✅ Extracted ${Object.keys(extractedFields).length} fields, ${notFound.length} not found`);
     console.log(`  Extracted:`, extractedFields);
+
+    // ── Unreadable / non-medical report detection ──────────────────────────
+    if (Object.keys(extractedFields).length === 0) {
+      return res.status(422).json({
+        success: false,
+        unreadable: true,
+        message: 'No recognisable medical data was found in this report. This may not be a compatible lab report, or the image quality may be too low. Please verify the file and enter values manually.',
+      });
+    }
 
     return res.status(200).json({
       success: true,
       extractedFields,
       notFound,
-      rawText: combinedText.trim(),
-      confidence: parseFloat(avgConfidence.toFixed(1)),
+      confidence: 99, // Gemini vision is far more reliable than OCR
       filesProcessed: req.files.length,
     });
+
   } catch (error) {
     console.error('Lab report extraction error:', error);
+
+    // Gemini-specific error messages
+    const msg = error.message || '';
+    if (msg.includes('API_KEY') || msg.includes('401')) {
+      return res.status(500).json({ success: false, message: 'AI service configuration error. Please contact the administrator.' });
+    }
+    if (msg.includes('429') || msg.includes('quota')) {
+      return res.status(429).json({ success: false, message: 'AI service is temporarily busy. Please wait a moment and try again.' });
+    }
+
     return res.status(500).json({
       success: false,
       message: 'Failed to process lab report. Please try again or enter values manually.',

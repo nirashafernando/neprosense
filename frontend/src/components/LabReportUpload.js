@@ -20,6 +20,7 @@ const LabReportUpload = ({ type = "donor", onExtracted, accentColor = "green" })
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);      // { extractedFields, notFound, rawText, confidence }
   const [error, setError] = useState("");
+  const [unreadable, setUnreadable] = useState(null); // message string when report is unreadable
   const [showRawText, setShowRawText] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -99,6 +100,7 @@ const LabReportUpload = ({ type = "donor", onExtracted, accentColor = "green" })
     setIsProcessing(true);
     setProgress(0);
     setError("");
+    setUnreadable(null);
     setResult(null);
 
     try {
@@ -135,7 +137,12 @@ const LabReportUpload = ({ type = "donor", onExtracted, accentColor = "green" })
       }
     } catch (err) {
       console.error("Lab report extraction error:", err);
-      setError(err.response?.data?.message || "Failed to process report. Please try again.");
+      // 422 = unreadable / no medical data found
+      if (err.response?.status === 422 && err.response?.data?.unreadable) {
+        setUnreadable(err.response.data.message);
+      } else {
+        setError(err.response?.data?.message || "Failed to process report. Please try again.");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -145,6 +152,7 @@ const LabReportUpload = ({ type = "donor", onExtracted, accentColor = "green" })
     setFiles([]);
     setResult(null);
     setError("");
+    setUnreadable(null);
     setProgress(0);
     setShowRawText(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -274,12 +282,21 @@ const LabReportUpload = ({ type = "donor", onExtracted, accentColor = "green" })
               <div className="bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
                 <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Extracted Values</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {Object.entries(result.extractedFields).map(([key, val]) => (
-                    <div key={key} className="bg-emerald-50 rounded px-2 py-1.5">
-                      <span className="text-[10px] text-gray-500 block">{formatFieldName(key)}</span>
-                      <span className="text-xs font-medium text-gray-800">{String(val)}</span>
-                    </div>
-                  ))}
+                  {Object.entries(result.extractedFields)
+                    // Hide boolean false — applied to form but not useful in the preview panel
+                    .filter(([, val]) => val !== false)
+                    .map(([key, val]) => {
+                      let display;
+                      if (val === true)       display = 'Yes';
+                      else if (val === false) display = 'No';
+                      else                   display = String(val);
+                      return (
+                        <div key={key} className="bg-emerald-50 rounded px-2 py-1.5">
+                          <span className="text-[10px] text-gray-500 block">{formatFieldName(key)}</span>
+                          <span className="text-xs font-medium text-gray-800">{display}</span>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             )}
@@ -320,6 +337,26 @@ const LabReportUpload = ({ type = "donor", onExtracted, accentColor = "green" })
               className="text-xs text-gray-500 hover:text-gray-700 underline transition-colors"
             >
               Upload another report
+            </button>
+          </div>
+        )}
+
+        {/* Unreadable report warning */}
+        {unreadable && (
+          <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg px-4 py-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-orange-700 mb-1">Report Unreadable or Incompatible</p>
+                <p className="text-xs text-orange-600">{unreadable}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="mt-2 text-xs text-orange-600 hover:text-orange-800 underline transition-colors"
+            >
+              Try a different file
             </button>
           </div>
         )}

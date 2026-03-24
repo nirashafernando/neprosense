@@ -538,15 +538,18 @@ const AddDonor = () => {
                       { name: "diabetes", label: "Diabetes" },
                       { name: "hypertension", label: "Hypertension" },
                     ].map(({ name, label }) => (
-                      <label key={name} className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="checkbox" name={name}
-                          checked={formData[name]} onChange={handleInputChange}
-                          className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                          disabled={isSubmitting}
-                        />
-                        <span className="text-sm text-gray-700">{label}</span>
-                      </label>
+                      <div key={name} className="flex items-center gap-3">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox" name={name}
+                            checked={formData[name]} onChange={handleInputChange}
+                            className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                            disabled={isSubmitting}
+                          />
+                          <span className="text-sm text-gray-700">{label}</span>
+                        </label>
+                        <FieldSourceBadge source={fieldSources[name]} />
+                      </div>
                     ))}
                   </div>
                 </div>
