@@ -2,19 +2,9 @@ import os
 import cv2
 import numpy as np
 import base64
-
-# Try to import TensorFlow - optional dependency
-TF_AVAILABLE = False
-tf = None
-try:
-    import tensorflow as tf
-    TF_AVAILABLE = True
-    print("[OK] TensorFlow loaded successfully")
-except ImportError:
-    print("[WARN] TensorFlow not available!")
-    print("[WARN] Ultrasound backend will run but predictions will fail")
-    print("[WARN] Install Python 3.12 and recreate virtual environment to enable TensorFlow")
-
+import tensorflow as tf
+import uuid
+from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -22,49 +12,72 @@ app = Flask(__name__)
 CORS(app)
 
 MODEL_PATH = os.path.join('models', 'kidney_model.h5')
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 model = None
 
-if TF_AVAILABLE:
-    try:
-        if os.path.exists(MODEL_PATH):
-            model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-            print(f"[OK] AI Model loaded successfully (Output shape: {model.output_shape})")
-        else:
-            print(f"⚠️  Model file not found: {MODEL_PATH}")
-    except Exception as e:
-        print(f"❌ Error loading model: {e}")
-        model = None
-else:
-    print("❌ Cannot load AI model - TensorFlow not available")
+try:
+    if os.path.exists(MODEL_PATH):
+        model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        print(f"AI System Activated (Output shape: {model.output_shape})")
+except Exception as e:
+    model = None
+
+def is_garbage_image(image):
+   
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+   
+    laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+    hist = cv2.calcHist([gray], [0], None, [256], [0, 256])
+    high_values = np.sum(hist[200:]) / np.sum(hist) 
+    
+    mean_val = np.mean(gray)
+
+    if mean_val > 170 or high_values > 0.2: 
+        return True, "This is not an Ultrasound image. Please upload a scan."
+    
+    if laplacian_var > 1000:
+        return True, "Non-medical image detected (High texture). Please upload a valid scan."
+    
+    if laplacian_var < 5: 
+        return True, "Blank or empty image detected."
+
+    return False, ""
 
 def get_prediction_results(image):
-    if not TF_AVAILABLE:
-        return {
-            "error": "TensorFlow not available", 
-            "message": "Python 3.14.2 does not support TensorFlow. Install Python 3.12 to enable predictions.",
-            "status": "tensorflow_missing"
-        }, image
-    
     if model is None:
-        return {
-            "error": "Model not loaded",
-            "message": "AI model file not found or failed to load",
-            "status": "model_not_loaded"
-        }, image
+        return {"error": "Model not loaded"}, image
 
     try:
+    
+        is_garbage, error_msg = is_garbage_image(image)
+        if is_garbage:
+            return {"error": error_msg}, image
+
         h_orig, w_orig = image.shape[:2]
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
         resized = cv2.resize(gray, (128, 128))
         input_data = resized.reshape(1, 128, 128, 1).astype(np.float32) / 255.0
 
         prediction = model.predict(input_data)[0]
         pred_2d = np.squeeze(prediction)
         
+
+        confidence_val = np.max(prediction)
+        if confidence_val < 0.85:
+            return {"error": "Kidney structure not clearly identified. Please upload a clear Ultrasound scan."}, image
+
         mask_resized = cv2.resize(pred_2d, (w_orig, h_orig), interpolation=cv2.INTER_LINEAR)
         mask_binary = (mask_resized > 0.5).astype(np.uint8) * 255
         
         pixel_count = np.sum(mask_binary > 0)
+        
+        if pixel_count < (w_orig * h_orig * 0.02):
+            return {"error": "No significant kidney structure detected."}, image
+
+        total_pixels = w_orig * h_orig
+        disease_percentage = (pixel_count / total_pixels) * 100
         
         min_thick, max_thick = 0.0, 0.0
         if pixel_count > 0:
@@ -73,28 +86,19 @@ def get_prediction_results(image):
             max_thick = round(max_val * 0.2, 2)
             min_thick = round(max_thick * 0.45, 2)
 
-        # Healthy / Mild / Severe Logic
-        if pixel_count < 300:
+        if disease_percentage < 5.0:
             diag_text = "Healthy"
-            color = [0, 255, 0] # Green
-        elif 300 <= pixel_count < 2500:
+            color = [0, 255, 0]
+        elif 5.0 <= disease_percentage < 15.0:
             diag_text = "Mild CKD"
-            color = [0, 165, 255] # Orange
+            color = [0, 165, 255]
         else:
             diag_text = "Severe CKD"
-            color = [0, 0, 255] # Red
+            color = [0, 0, 255]
 
         annotated = image.copy()
         
-        center_x, center_y = int(w_orig / 2), int(h_orig / 2)
-        radius = int(min(w_orig, h_orig) / 4) 
-        cv2.circle(annotated, (center_x, center_y), radius, color, 3, cv2.LINE_AA)
-        
-        overlay = image.copy()
-        cv2.circle(overlay, (center_x, center_y), radius, color, -1) # Fill color
-        cv2.addWeighted(overlay, 0.2, annotated, 0.8, 0, annotated) # 20% opacity
-        
-        confidence = float(np.max(prediction)) * 100
+        confidence = float(confidence_val) * 100
 
         return {
             "diagnosis": diag_text,
@@ -114,16 +118,22 @@ def predict():
             return jsonify({"error": "No file uploaded"}), 400
             
         file = request.files['file']
-        nparr = np.frombuffer(file.read(), np.uint8)
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if file.filename == '':
+            return jsonify({"error": "No selected file"}), 400
 
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
+        file.save(filepath)
+
+        image = cv2.imread(filepath)
         if image is None:
-            return jsonify({"error": "Invalid format"}), 400
+            return jsonify({"error": "Invalid image format"}), 400
 
         data, processed_img = get_prediction_results(image)
         
         if "error" in data:
-            return jsonify(data), 500
+            return jsonify(data), 400
 
         _, buffer = cv2.imencode('.jpg', processed_img)
         img_base64 = base64.b64encode(buffer).decode('utf-8')
@@ -134,10 +144,9 @@ def predict():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "ok", "service": "ultrasound", "port": 5002})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True, port=5002)
+    app.run(debug=True, port=5002)
