@@ -12,6 +12,7 @@ const services = {
       '/api/recipients',
       '/api/predictions',
       '/api/reports',
+      '/api/lab-reports',
       '/api/users',
     ],
     healthCheck: '/health',

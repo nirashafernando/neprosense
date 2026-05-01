@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes.js';
 import predictionRoutes from './routes/predictionRoutes.js';
 import donorRoutes from './routes/donorRoutes.js';
 import recipientRoutes from './routes/recipientRoutes.js';
+import labReportRoutes from './routes/labReportRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -44,6 +45,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/predictions', predictionRoutes);
 app.use('/api/donors', donorRoutes);
 app.use('/api/recipients', recipientRoutes);
+app.use('/api/lab-reports', labReportRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

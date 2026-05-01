@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { User, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../lib/axios";
 import { useToast } from "./Toast";
 import MedicalTooltip from "./MedicalTooltip";
 import FieldError, { inputClass } from "./FieldError";
+import LabReportUpload from "./LabReportUpload";
+import FieldSourceBadge from "./FieldSourceBadge";
 
 // ─── Validators ──────────────────────────────────────────────────────────────
 
@@ -162,6 +164,7 @@ const AddRecipient = () => {
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [fieldSources, setFieldSources] = useState({}); // "lab_report" | "manual" | "not_found" | null
 
   // ── Auto-generate Recipient ID ──────────────────────────────────────────────
   useEffect(() => {
@@ -199,10 +202,49 @@ const AddRecipient = () => {
     setFormData(newFormData);
     setServerError("");
 
+    // If user edits a field that was auto-filled from lab report, mark as manual
+    if (fieldSources[name] === "lab_report") {
+      setFieldSources((prev) => ({ ...prev, [name]: "manual" }));
+    }
+
     if (touched[name] && validate[name]) {
       setFieldErrors((prev) => ({ ...prev, [name]: validate[name](type === "checkbox" ? checked : value) }));
     }
   };
+
+  // ── Lab Report Extraction Handler ──────────────────────────────────────────
+  const handleLabReportExtracted = useCallback((extractedFields, notFound) => {
+    setFormData((prev) => {
+      const updated = { ...prev };
+      Object.entries(extractedFields).forEach(([key, value]) => {
+        if (fieldSources[key] !== "manual") {
+          updated[key] = value;
+        }
+      });
+      // Recalculate BMI if weight/height were extracted
+      if (updated.weight && updated.height) {
+        const w = parseFloat(updated.weight);
+        const h = parseFloat(updated.height) / 100;
+        if (w > 0 && h > 0) updated.bmi = (w / (h * h)).toFixed(1);
+      }
+      return updated;
+    });
+
+    setFieldSources((prev) => {
+      const sources = { ...prev };
+      Object.keys(extractedFields).forEach((key) => {
+        if (sources[key] !== "manual") {
+          sources[key] = "lab_report";
+        }
+      });
+      notFound.forEach((key) => {
+        if (!sources[key]) {
+          sources[key] = "not_found";
+        }
+      });
+      return sources;
+    });
+  }, [fieldSources]);
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
@@ -286,6 +328,13 @@ const AddRecipient = () => {
           </div>
         </div>
 
+        {/* Lab Report Upload */}
+        <LabReportUpload
+          type="recipient"
+          onExtracted={handleLabReportExtracted}
+          accentColor="purple"
+        />
+
         {/* Form */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <form onSubmit={handleSubmit} noValidate>
@@ -308,6 +357,7 @@ const AddRecipient = () => {
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                     Full Name <span className="text-rose-500">*</span>
+                    <FieldSourceBadge source={fieldSources.name} />
                   </label>
                   <input
                     type="text" id="name" name="name"
@@ -324,6 +374,7 @@ const AddRecipient = () => {
                 <div>
                   <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-1">
                     Weight (kg) <span className="text-rose-500">*</span>
+                    <FieldSourceBadge source={fieldSources.weight} />
                   </label>
                   <input
                     type="number" step="0.1" id="weight" name="weight"
@@ -337,6 +388,7 @@ const AddRecipient = () => {
                 <div>
                   <label htmlFor="height" className="block text-sm font-medium text-gray-700 mb-1">
                     Height (cm) <span className="text-rose-500">*</span>
+                    <FieldSourceBadge source={fieldSources.height} />
                   </label>
                   <input
                     type="number" step="0.1" id="height" name="height"
@@ -350,6 +402,7 @@ const AddRecipient = () => {
                 <div>
                   <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
                     Age <span className="text-rose-500">*</span>
+                    <FieldSourceBadge source={fieldSources.age} />
                   </label>
                   <input
                     type="number" id="age" name="age"
@@ -366,6 +419,7 @@ const AddRecipient = () => {
                 <div>
                   <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
                     Location <span className="text-rose-500">*</span>
+                    <FieldSourceBadge source={fieldSources.location} />
                   </label>
                   <input
                     type="text" id="location" name="location"
@@ -379,6 +433,7 @@ const AddRecipient = () => {
                 <div>
                   <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
                     Gender <span className="text-rose-500">*</span>
+                    <FieldSourceBadge source={fieldSources.gender} />
                   </label>
                   <select
                     id="gender" name="gender"
@@ -398,6 +453,7 @@ const AddRecipient = () => {
                 <div>
                   <label htmlFor="waitingTime" className="block text-sm font-medium text-gray-700 mb-1">
                     Waiting Time (months) <span className="text-rose-500">*</span>
+                    <FieldSourceBadge source={fieldSources.waitingTime} />
                   </label>
                   <input
                     type="number" id="waitingTime" name="waitingTime"
@@ -411,6 +467,7 @@ const AddRecipient = () => {
                 <div>
                   <label htmlFor="urgencyScore" className="block text-sm font-medium text-gray-700 mb-1">
                     Urgency Score (1–10) <span className="text-rose-500">*</span>
+                    <FieldSourceBadge source={fieldSources.urgencyScore} />
                   </label>
                   <input
                     type="number" id="urgencyScore" name="urgencyScore"
@@ -428,6 +485,7 @@ const AddRecipient = () => {
                   <label htmlFor="bloodGroup" className="block text-sm font-medium text-gray-700 mb-1">
                     <MedicalTooltip term="Blood Group" position="top">Blood Group</MedicalTooltip>{" "}
                     <span className="text-rose-500">*</span>
+                    <FieldSourceBadge source={fieldSources.bloodGroup} />
                   </label>
                   <select
                     id="bloodGroup" name="bloodGroup"
@@ -446,6 +504,7 @@ const AddRecipient = () => {
                   <label htmlFor="hlaTyping" className="block text-sm font-medium text-gray-700 mb-1">
                     <MedicalTooltip term="HLA" position="top">HLA Typing</MedicalTooltip>{" "}
                     <span className="text-rose-500">*</span>
+                    <FieldSourceBadge source={fieldSources.hlaTyping} />
                   </label>
                   <input
                     type="text" id="hlaTyping" name="hlaTyping"
@@ -481,6 +540,7 @@ const AddRecipient = () => {
                   <div>
                     <label htmlFor="creatinine" className="block text-sm font-medium text-gray-700 mb-1">
                       Creatinine (mg/dL)
+                      <FieldSourceBadge source={fieldSources.creatinine} />
                     </label>
                     <input
                       type="number" step="0.1" id="creatinine" name="creatinine"
@@ -497,6 +557,7 @@ const AddRecipient = () => {
                   <div>
                     <label htmlFor="gfr" className="block text-sm font-medium text-gray-700 mb-1">
                       <MedicalTooltip term="eGFR" position="top">GFR (mL/min)</MedicalTooltip>
+                      <FieldSourceBadge source={fieldSources.gfr} />
                     </label>
                     <input
                       type="number" id="gfr" name="gfr"
@@ -510,6 +571,7 @@ const AddRecipient = () => {
                   <div>
                     <label htmlFor="systolicBP" className="block text-sm font-medium text-gray-700 mb-1">
                       Systolic BP (mmHg)
+                      <FieldSourceBadge source={fieldSources.systolicBP} />
                     </label>
                     <input
                       type="number" id="systolicBP" name="systolicBP"
@@ -523,6 +585,7 @@ const AddRecipient = () => {
                   <div>
                     <label htmlFor="diastolicBP" className="block text-sm font-medium text-gray-700 mb-1">
                       Diastolic BP (mmHg)
+                      <FieldSourceBadge source={fieldSources.diastolicBP} />
                     </label>
                     <input
                       type="number" id="diastolicBP" name="diastolicBP"
@@ -539,6 +602,7 @@ const AddRecipient = () => {
                   <div>
                     <label htmlFor="dialysisYears" className="block text-sm font-medium text-gray-700 mb-1">
                       Dialysis Years
+                      <FieldSourceBadge source={fieldSources.dialysisYears} />
                     </label>
                     <input
                       type="number" step="0.1" id="dialysisYears" name="dialysisYears"
@@ -552,6 +616,7 @@ const AddRecipient = () => {
                   <div>
                     <label htmlFor="pra" className="block text-sm font-medium text-gray-700 mb-1">
                       <MedicalTooltip term="PRA" position="top">PRA (%)</MedicalTooltip>
+                      <FieldSourceBadge source={fieldSources.pra} />
                     </label>
                     <input
                       type="number" step="0.1" id="pra" name="pra"
@@ -565,6 +630,7 @@ const AddRecipient = () => {
                   <div>
                     <label htmlFor="previousTransplants" className="block text-sm font-medium text-gray-700 mb-1">
                       Previous Transplants
+                      <FieldSourceBadge source={fieldSources.previousTransplants} />
                     </label>
                     <input
                       type="number" id="previousTransplants" name="previousTransplants"
@@ -584,15 +650,18 @@ const AddRecipient = () => {
                       { name: "diabetes", label: "Diabetes" },
                       { name: "hypertension", label: "Hypertension" },
                     ].map(({ name, label }) => (
-                      <label key={name} className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="checkbox" name={name}
-                          checked={formData[name]} onChange={handleInputChange}
-                          className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                          disabled={isSubmitting}
-                        />
-                        <span className="text-sm text-gray-700">{label}</span>
-                      </label>
+                      <div key={name} className="flex items-center gap-3">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox" name={name}
+                            checked={formData[name]} onChange={handleInputChange}
+                            className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            disabled={isSubmitting}
+                          />
+                          <span className="text-sm text-gray-700">{label}</span>
+                        </label>
+                        <FieldSourceBadge source={fieldSources[name]} />
+                      </div>
                     ))}
                   </div>
                 </div>
