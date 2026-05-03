@@ -90,34 +90,21 @@ def predict():
         img = cv2.imread(filepath)
         if img is None: return jsonify({'success': False, 'error': 'Failed to read image'}), 400
 
+     
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        if np.mean(gray) > 245 or np.mean(gray) < 10:
+        if np.mean(gray) > 240 or np.mean(gray) < 10:
             return jsonify({'success': False, 'error': 'Invalid image. Please upload a clear photo of the urine strip.'}), 400
 
-    
-        results = yolo_model(img, conf=0.4) 
+        results = yolo_model(img, conf=0.25)
         pads_coords = []
-        
         for r in results:
             for box in r.boxes:
                 x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
                 pads_coords.append({"coords": (x1, y1, x2, y2), "cx": (x1 + x2) / 2, "cy": (y1 + y2) / 2})
 
-        if len(pads_coords) < 5: 
+       
+        if len(pads_coords) < 3: 
             return jsonify({'success': False, 'error': 'No valid urine strip detected. Please ensure the strip is clearly visible.'}), 400
-            
-        # Structural check 1: pads must be aligned in a strip (either vertically or horizontally)
-        # If both X and Y standard deviations are high, the boxes are scattered randomly
-        cxs = [p['cx'] for p in pads_coords]
-        cys = [p['cy'] for p in pads_coords]
-        if np.std(cxs) > 50 and np.std(cys) > 50:
-            return jsonify({'success': False, 'error': 'Invalid image structure. Please upload a clear photo of the urine strip.'}), 400
-
-        # Structural check 2: pads must be roughly the same size
-        widths = [p['coords'][2] - p['coords'][0] for p in pads_coords]
-        heights = [p['coords'][3] - p['coords'][1] for p in pads_coords]
-        if np.std(widths) > 30 or np.std(heights) > 30:
-            return jsonify({'success': False, 'error': 'Garbage image detected. Detected objects are irregularly sized.'}), 400
 
         pads_coords.sort(key=lambda p: p['cy']) 
         
